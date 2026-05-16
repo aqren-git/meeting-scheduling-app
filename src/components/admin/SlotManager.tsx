@@ -5,7 +5,7 @@ import { useCrews } from '@/hooks/useCrews'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton/Skeleton'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { showSuccessToast, showErrorToast } from '@/components/ui/toast/toastConfig'
@@ -902,9 +902,26 @@ export function SlotManager() {
 
       {/* ── Content ── */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Spinner size={24} className="!border-brand/30 !border-t-brand mb-3" />
-          <p className="text-sm text-text-muted">Loading slots...</p>
+        <div>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="mb-4">
+              <Skeleton className="w-48 h-5 mb-2" />
+              <div className="space-y-1">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <div key={j} className="bg-surface-default rounded border border-border p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex-1 flex items-center gap-3">
+                      <Skeleton className="w-16 h-16 rounded-md" />
+                      <div className="flex-1 space-y-1">
+                        <Skeleton className="w-28 h-4" />
+                        <Skeleton className="w-20 h-4" />
+                      </div>
+                    </div>
+                    <Skeleton className="w-24 h-8" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

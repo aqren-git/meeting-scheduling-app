@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton/Skeleton'
 import { showSuccessToast, showErrorToast } from '@/components/ui/toast/toastConfig'
 
 /* ── Types ── */
@@ -141,8 +141,29 @@ export function SettingsPanel() {
   /* ── Render ── */
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Spinner size={24} />
+      <div>
+        <h2 className="text-lg font-semibold text-text-primary mb-4">
+          <Skeleton className="w-24 h-6" />
+        </h2>
+        <div className="bg-surface-default rounded-lg border border-border p-4 sm:p-5 shadow-sm mb-6 space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i}>
+              <Skeleton className="w-40 h-4 mb-2" />
+              <Skeleton className="w-full h-9" />
+            </div>
+          ))}
+        </div>
+        <h3 className="text-base font-semibold text-text-primary mb-3">
+          <Skeleton className="w-20 h-5" />
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-surface-default rounded-lg border border-border p-4 shadow-sm">
+              <Skeleton className="w-16 h-8 mx-auto mb-1" />
+              <Skeleton className="w-12 h-3 mx-auto" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -174,8 +195,13 @@ export function SettingsPanel() {
       <h3 className="text-base font-semibold text-text-primary mb-3">Stats</h3>
 
       {countsLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <Spinner size={20} />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-surface-default rounded-lg border border-border p-4 shadow-sm text-center">
+              <Skeleton className="w-16 h-8 mx-auto mb-1" />
+              <Skeleton className="w-12 h-3 mx-auto" />
+            </div>
+          ))}
         </div>
       ) : counts ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

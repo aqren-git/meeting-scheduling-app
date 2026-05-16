@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton/Skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { showSuccessToast, showErrorToast } from '@/components/ui/toast/toastConfig'
 
@@ -205,8 +205,39 @@ export function CrewManager() {
   /* ── Render ── */
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Spinner size={24} />
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <Skeleton className="w-48 h-6" />
+          <Skeleton className="w-24 h-9" />
+        </div>
+        <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+          <table className="w-full text-sm">
+            <thead className="bg-surface">
+              <tr className="text-left text-text-secondary text-xs uppercase tracking-wider">
+                <th className="px-3 py-2.5 font-medium w-10"><Skeleton className="w-4 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium"><Skeleton className="w-8 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium"><Skeleton className="w-12 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium"><Skeleton className="w-16 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium"><Skeleton className="w-20 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium"><Skeleton className="w-10 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium w-20"><Skeleton className="w-12 h-4" /></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i}>
+                  <td className="px-3 py-2.5"><Skeleton className="w-4 h-4" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-5 h-5 rounded-sm" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-32 h-4" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-6 h-4" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-8 h-4" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-6 h-4" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-16 h-6" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )
   }

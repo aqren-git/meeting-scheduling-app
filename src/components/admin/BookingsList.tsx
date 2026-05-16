@@ -5,7 +5,7 @@ import { useCrews } from '@/hooks/useCrews'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Badge } from '@/components/ui/badge'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton/Skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { showSuccessToast, showErrorToast } from '@/components/ui/toast/toastConfig'
 import { format, parseISO } from 'date-fns'
@@ -127,11 +127,42 @@ export function BookingsList() {
         </div>
       )}
 
-      {/* ── Loading ── */}
+      {/* ── Loading Skeleton ── */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Spinner size={24} className="border-brand/30 border-t-brand" />
-          <p className="text-sm text-text-secondary">Loading bookings...</p>
+        <div>
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <Skeleton className="w-40 h-9" />
+            <Skeleton className="w-24 h-9" />
+            <Skeleton className="w-28 h-9" />
+          </div>
+          <div className="bg-white rounded-lg border border-border overflow-hidden">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="border-b border-border p-4 sm:p-5">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                      <Skeleton className="w-24 h-5" />
+                      <Skeleton className="w-32 h-4" />
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary">
+                      <Skeleton className="w-28 h-4" />
+                      <Skeleton className="w-20 h-4" />
+                      <Skeleton className="w-24 h-4" />
+                      <Skeleton className="w-16 h-4" />
+                    </div>
+                  </div>
+                  <Skeleton className="w-20 h-8" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between mt-4">
+            <Skeleton className="w-32 h-4" />
+            <div className="flex gap-2">
+              <Skeleton className="w-10 h-9" />
+              <Skeleton className="w-10 h-9" />
+            </div>
+          </div>
         </div>
       )}
 

@@ -4,7 +4,7 @@ import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton/Skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { showSuccessToast, showErrorToast } from '@/components/ui/toast/toastConfig'
 import { Building2, Pencil, Trash2, Plus } from 'lucide-react'
@@ -131,10 +131,41 @@ export function PropertyManager() {
         </div>
       )}
 
-      {/* ── Loading ── */}
+      {/* ── Loading Skeleton ── */}
       {loading && (
-        <div className="flex items-center justify-center py-16">
-          <Spinner size={24} className="border-brand/30 border-t-brand" />
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <Skeleton className="w-32 h-6" />
+            <Skeleton className="w-32 h-9" />
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-secondary">
+                <tr>
+                  <th className="px-4 py-3"><Skeleton className="w-12 h-4" /></th>
+                  <th className="px-4 py-3"><Skeleton className="w-16 h-4" /></th>
+                  <th className="px-4 py-3"><Skeleton className="w-12 h-4" /></th>
+                  <th className="px-4 py-3"><Skeleton className="w-20 h-4" /></th>
+                  <th className="px-4 py-3"><Skeleton className="w-20 h-4" /></th>
+                  <th className="px-4 py-3"><Skeleton className="w-10 h-4" /></th>
+                  <th className="px-4 py-3 text-right"><Skeleton className="w-12 h-4" /></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-3"><Skeleton className="w-24 h-4" /></td>
+                    <td className="px-4 py-3"><Skeleton className="w-32 h-4" /></td>
+                    <td className="px-4 py-3"><Skeleton className="w-20 h-4" /></td>
+                    <td className="px-4 py-3"><Skeleton className="w-24 h-4" /></td>
+                    <td className="px-4 py-3"><Skeleton className="w-28 h-4" /></td>
+                    <td className="px-4 py-3 text-center"><Skeleton className="w-4 h-4 mx-auto rounded-full" /></td>
+                    <td className="px-4 py-3 text-right"><Skeleton className="w-16 h-7 ml-auto" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
