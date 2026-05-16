@@ -77,11 +77,40 @@ All slots are now **time-based** — each slot has a required `start_time` and `
 - **`dateUtils.ts`** — added `formatTimeRange(start, end)` → "8:00 AM – 10:00 AM"
 - **`types/slot.ts`** — `start_time` / `end_time` are now required strings
 
-## What to Verify Next
-- Populate `.env.local` with real Supabase credentials
-- Run migrations 001 and 002 in Supabase SQL editor
-- Run seed.sql to populate crews and slots (now creates 5 time slots per crew per weekday)
-- Enable Realtime on `slots` table in Supabase dashboard
-- Open two browser tabs — booking a specific time slot on one should update the other in real time
-- Simulate race condition: manually book a slot in Supabase dashboard mid-flow → error toast shown, modal stays open
-- Verify each day shows 15 slot boxes (3 crews × 5 time slots), sorted by time
+## Task 7 — Booking Notification Email
+- **`supabase/functions/notify-booking/index.ts`** — Supabase Edge Function (Deno) that:
+  - Receives: `date`, `crewName`, `propertyName`, `bookedByName`, `bookedByEmail`, `notes`
+  - Reads `notification_email` from the `settings` table at runtime (not hardcoded)
+  - Sends email via Resend API with subject `New Booking Confirmed — [Property Name] · [Date]`
+  - Sends both HTML and plain text email bodies with booking details
+  - Sets `reply_to` to the contact's email
+  - Called from `useBooking.ts` after successful booking update (fire-and-forget, does not block UI)
+
+## Deploy Instructions
+### 1. Install Supabase CLI
+```bash
+npm install -g supabase
+# or
+npx supabase ...
+```
+
+### 2. Link to your project
+```bash
+supabase login
+supabase link --project-ref rnkqsnbildlpfzftfwpy
+```
+
+### 3. Set Resend API key
+Sign up at https://resend.com, get an API key from the dashboard, then:
+```bash
+supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxx
+```
+
+### 4. Deploy the Edge Function
+```bash
+supabase functions deploy notify-booking
+```
+
+### 5. Verify
+- Complete a booking in the app
+- Check `monirhasnan@gmail.com` inbox — email should arrive within 30 seconds
