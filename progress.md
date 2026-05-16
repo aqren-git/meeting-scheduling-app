@@ -43,7 +43,45 @@ All in `src/components/ui/` with `index.ts` re-exports:
 - **`App.tsx`** — `BrowserRouter` + `Toaster` + `/` route to PublicCalendar
 - `vite build` passes cleanly with zero errors
 
+## Task 5 — Live Data
+- **`src/lib/supabase.ts`** — removed the env-var throw; client created with placeholders so hooks fail gracefully
+- **`src/hooks/useCrews.ts`** — fetches active crews from Supabase `crews` table, ordered by `display_order`; returns `{ crews, loading, error }`
+- **`src/hooks/useSlots.ts`** — fetches slots in a date range (`start`/`end`) with joined `crews(name, color, display_order)`; subscribes to Supabase Realtime `postgres_changes` on the `slots` table; handles INSERT (adds slot in range), UPDATE (merges new data + preserves existing `crews` join), DELETE (removes by id); tracks `realtimeStatus` (`connected`/`disconnected`) via subscription callback; returns `{ slots, loading, error, realtimeStatus }`
+- **`src/pages/PublicCalendar.tsx`** — replaced mock data with real hooks: `useCrews()` and `useSlots(getMonthRange(...))`; shows `Spinner` while loading (centered, with text); renders `EmptyState` when `slots.length === 0`; shows amber error banner on fetch failure; live badge switches to amber dot + "Reconnecting…" text when `realtimeStatus === 'disconnected'`
+
+## Task 6 — Booking Flow
+- **`src/hooks/useBooking.ts`** — `book()` function updates slot via `supabase.from('slots').update({...}).eq('id', slotId).eq('status', 'available')` (database-level race condition guard); if `data.length === 0`, shows error toast "This slot was just taken"; on success shows success toast "Booking confirmed!"; fires `supabase.functions.invoke('notify-booking')` as fire-and-forget; returns `true`/`false`
+- **`src/components/booking/BookingModal.tsx`** — wired to `useBooking().book`; form resets on open via `useEffect([isModalOpen])`; local `slot` const after null guard for type safety; calls `book(...)` on submit; closes modal only on success (failure keeps modal open for retry)
+- SlotBadge click → `calendarStore.openModal(slot)` already wired from Task 4
+- `Toaster` already in `App.tsx` from Task 4
+
+## Time-Slot Migration (Updated Design)
+
+All slots are now **time-based** — each slot has a required `start_time` and `end_time` (2-hour blocks). A crew can have multiple slots per day at different times.
+
+### Schema changes
+- `start_time` / `end_time` → `NOT NULL` in `001_initial_schema.sql`
+- `chk_end_after_start` → simplified to `end_time > start_time` (no nulls)
+- Unique index → `idx_unique_crew_time_booked on slots(crew_id, date, start_time) where status = 'booked'` — prevents double-booking the same time slot
+- Added `idx_slots_crew_date_time` index for time-sorted queries
+
+### Seed changes (`seed.sql`)
+- Each weekday generates **5 time slots per crew**: 8am, 10am, 12pm, 2pm, 4pm (2hr each)
+- 3 crews × 5 slots × ~25 weekdays = ~375 slots per month
+
+### Component changes
+- **`SlotBadge`** — redesigned to `flex-col`: top line shows time range ("8:00 AM – 10:00 AM") in 11px semibold, bottom line shows crew dot + name in 10px. Mobile: crew row hidden
+- **`DayCell`** — sorts slots by `start_time` ascending; min-height increased to 160px desktop / 100px mobile (fits 5 time slots); `overflow-y-auto` for scroll
+- **`BookingModal`** — header now shows: "Thursday, May 22 · 8:00 AM – 10:00 AM" with crew dot + name
+- **`mockSlots.ts`** — generates 5 time slots per weekday per crew with realistic data
+- **`dateUtils.ts`** — added `formatTimeRange(start, end)` → "8:00 AM – 10:00 AM"
+- **`types/slot.ts`** — `start_time` / `end_time` are now required strings
+
 ## What to Verify Next
-- Populate `.env.local` with real Supabase credentials (Task 5 dependency)
-- Run migrations and seed in Supabase SQL editor
+- Populate `.env.local` with real Supabase credentials
+- Run migrations 001 and 002 in Supabase SQL editor
+- Run seed.sql to populate crews and slots (now creates 5 time slots per crew per weekday)
 - Enable Realtime on `slots` table in Supabase dashboard
+- Open two browser tabs — booking a specific time slot on one should update the other in real time
+- Simulate race condition: manually book a slot in Supabase dashboard mid-flow → error toast shown, modal stays open
+- Verify each day shows 15 slot boxes (3 crews × 5 time slots), sorted by time

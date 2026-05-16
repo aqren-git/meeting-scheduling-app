@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { Slot } from '@/types/slot'
 import { SlotBadge } from './SlotBadge'
 
@@ -11,13 +12,18 @@ interface DayCellProps {
 }
 
 export function DayCell({ dayNumber, isPadding, isPast, isToday, isWeekend, slots }: DayCellProps) {
+  const sortedSlots = useMemo(
+    () => [...slots].sort((a, b) => a.start_time.localeCompare(b.start_time)),
+    [slots]
+  )
+
   if (isPadding) {
-    return <div className="bg-surface-default min-h-[120px] max-sm:min-h-[80px] p-2 max-sm:p-1" />
+    return <div className="bg-surface-default min-h-[160px] max-sm:min-h-[100px] p-[6px] max-sm:p-[3px]" />
   }
 
   return (
     <div
-      className={`min-h-[120px] max-sm:min-h-[80px] p-3 max-sm:p-1 relative
+      className={`min-h-[160px] max-sm:min-h-[100px] p-[6px] max-sm:p-[3px] relative overflow-y-auto
         ${isWeekend ? 'bg-surface' : 'bg-surface-default'}
         ${!isPast ? 'hover:bg-surface-hover' : ''}`}
     >
@@ -32,10 +38,10 @@ export function DayCell({ dayNumber, isPadding, isPast, isToday, isWeekend, slot
           </span>
         )}
       </div>
-      {slots.length === 0 && !isPast && (
+      {sortedSlots.length === 0 && !isPast && (
         <p className="text-[10px] text-text-muted">No availability</p>
       )}
-      {slots.map((slot) => (
+      {sortedSlots.map((slot) => (
         <SlotBadge key={slot.id} slot={slot} />
       ))}
     </div>

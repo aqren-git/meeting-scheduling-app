@@ -1,23 +1,35 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { Input, Textarea } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { formatDisplayDate } from '@/lib/dateUtils'
+import { formatDisplayDate, formatTimeRange } from '@/lib/dateUtils'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useBooking } from '@/hooks/useBooking'
 
 export function BookingModal() {
   const { selectedSlot, isModalOpen, closeModal } = useCalendarStore()
+  const { book, loading } = useBooking()
   const [propertyName, setPropertyName] = useState('')
   const [contactName, setContactName] = useState('')
   const [email, setEmail] = useState('')
   const [notes, setNotes] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (isModalOpen) {
+      setPropertyName('')
+      setContactName('')
+      setEmail('')
+      setNotes('')
+      setErrors({})
+    }
+  }, [isModalOpen])
 
   if (!selectedSlot) return null
 
-  const crew = selectedSlot.crews
-  const dateDisplay = formatDisplayDate(selectedSlot.date)
+  const slot = selectedSlot
+  const crew = slot.crews
+  const dateDisplay = `${formatDisplayDate(slot.date)} \u00b7 ${formatTimeRange(slot.start_time, slot.end_time)}`
 
   function validate() {
     const errs: Record<string, string> = {}
@@ -34,11 +46,18 @@ export function BookingModal() {
 
   async function handleSubmit() {
     if (!validate()) return
-    setLoading(true)
-    // Placeholder — real booking logic added in Task 6
-    await new Promise((r) => setTimeout(r, 1000))
-    setLoading(false)
-    closeModal()
+
+    const success = await book({
+      slotId: slot.id,
+      bookedByName: contactName.trim(),
+      bookedByEmail: email.trim(),
+      propertyName: propertyName.trim(),
+      notes: notes.trim() || undefined,
+    })
+
+    if (success) {
+      closeModal()
+    }
   }
 
   return (

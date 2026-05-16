@@ -241,13 +241,14 @@ Use Tailwind's default spacing scale. Key values used in this project:
 - 7-column CSS grid with `gap-px` (1px gap between cells — Google Calendar style)
 - Background of the grid container: `--border` (so the 1px gap shows as a grid line)
 - Each cell sits on top of this background, giving the illusion of borders without actual borders
+- Day cells must be tall enough to stack multiple time slot boxes — minimum 160px desktop, 100px mobile
 
 ```css
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 1px;
-  background-color: var(--border);   /* gap color = border color */
+  background-color: var(--border);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -255,14 +256,15 @@ Use Tailwind's default spacing scale. Key values used in this project:
 
 .day-cell {
   background-color: var(--background);
-  min-height: 120px;                 /* desktop */
-  padding: 8px;
+  min-height: 160px;                 /* desktop — tall enough for 5 time slots */
+  padding: 6px;
   position: relative;
+  overflow-y: auto;                  /* if slots overflow, scroll within cell */
 }
 
 /* Mobile */
 @media (max-width: 640px) {
-  .day-cell { min-height: 80px; padding: 4px; }
+  .day-cell { min-height: 100px; padding: 3px; }
 }
 ```
 
@@ -273,46 +275,43 @@ Use Tailwind's default spacing scale. Key values used in this project:
 **Normal day:**
 - White background
 - Day number top-left, `text-sm text-primary`
+- Below the day number: stacked list of time slot boxes, sorted by start_time ascending
 
 **Today:**
 - Day number wrapped in a filled circle: `w-7 h-7 rounded-full bg-brand text-inverse font-semibold flex items-center justify-center text-sm`
 
 **Past day:**
 - Day number: `text-muted`
-- Slot boxes still render but are not clickable (show blocked style regardless of actual status)
-- Cell background: unchanged (white) — don't tint past days, it's distracting
+- All slot boxes render as blocked style — not clickable
+- Cell background: unchanged (white)
 
 **Weekend day:**
-- Day cell background: `--surface` (#f8f9fa) — very subtle, just barely off-white
+- Day cell background: `--surface` (#f8f9fa)
 - Day number: `text-secondary`
 
 **Padding cell (before month starts):**
 - Empty cell, white background, no content
-- Do not show day number
-
-**Hover (future available days):**
-- `background: var(--surface-hover)` on the cell — not the slot box
 
 ---
 
 ### 6.6 Slot Box (The Core Component)
 
-This is the most important component. Each crew's slot for a given day is a distinct box.
+Each time slot is a distinct box inside the day cell. A day can have many of these stacked vertically — one per crew per time slot.
 
 ```
-┌─────────────────────┐
-│ ●  Team Alpha       │
-│    Available        │
-└─────────────────────┘
+┌──────────────────────┐
+│ 8:00 – 10:00 AM      │
+│ ● Team Alpha         │
+└──────────────────────┘
 ```
 
 **Structure:**
 ```jsx
 <div className="slot-box slot-available">
-  <span className="slot-dot" />
-  <div className="slot-content">
+  <span className="slot-time">8:00 – 10:00 AM</span>
+  <div className="slot-footer">
+    <span className="slot-dot" />
     <span className="slot-crew">Team Alpha</span>
-    <span className="slot-label">Available</span>
   </div>
 </div>
 ```
@@ -321,15 +320,15 @@ This is the most important component. Each crew's slot for a given day is a dist
 ```css
 .slot-box {
   display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 5px 7px;
-  border-radius: 6px;               /* rounded-md */
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 6px;
   border: 1px solid;
   cursor: pointer;
-  transition: background-color 200ms ease, opacity 200ms ease;
   margin-bottom: 3px;
   user-select: none;
+  width: 100%;
 }
 
 /* Available */
@@ -360,24 +359,45 @@ This is the most important component. Each crew's slot for a given day is a dist
   cursor: not-allowed;
 }
 
-/* Dot */
+/* Time label — primary line */
+.slot-time {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Crew row — secondary line */
+.slot-footer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Crew color dot */
 .slot-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-  margin-top: 3px;                  /* vertical align with first text line */
 }
 .slot-available .slot-dot  { background: var(--available-dot); }
 .slot-booked .slot-dot     { background: var(--booked-dot); }
 .slot-blocked .slot-dot    { background: var(--blocked-dot); }
 
-/* Text */
-.slot-crew  { display: block; font-size: 11px; font-weight: 500; line-height: 1.3; }
-.slot-label { display: block; font-size: 10px; font-weight: 400; opacity: 0.8; }
+/* Crew name */
+.slot-crew { font-size: 10px; font-weight: 400; opacity: 0.85; }
 ```
 
-**On mobile:** Hide `.slot-label` (just show dot + crew name). Reduce padding to `4px 6px`.
+**On mobile:** Hide `.slot-crew` row entirely — show only `.slot-time`. Reduce padding to `3px 4px`.
+
+```css
+@media (max-width: 640px) {
+  .slot-footer { display: none; }
+  .slot-time   { font-size: 10px; }
+  .slot-box    { padding: 3px 4px; margin-bottom: 2px; }
+}
+```
 
 ---
 
@@ -387,7 +407,7 @@ This is the most important component. Each crew's slot for a given day is a dist
 ┌────────────────────────────────────┐
 │ Book a Crew                    ✕   │
 │ ─────────────────────────────────  │
-│ Thursday, May 22, 2026             │
+│ Thursday, May 22 · 8:00–10:00 AM  │
 │ ● Team Alpha                       │
 │                                    │
 │ Property Name          *           │
@@ -428,7 +448,7 @@ This is the most important component. Each crew's slot for a given day is a dist
 **Divider:** `1px solid var(--border)`, `my-4`
 
 **Date + crew info block:**
-- Date: `text-sm font-medium text-primary`
+- Date and time: `text-sm font-medium text-primary` — e.g. "Thursday, May 22 · 8:00 – 10:00 AM"
 - Crew: small dot + crew name in `text-sm text-secondary`
 - `mb-5`
 
@@ -776,18 +796,18 @@ PAGE
 │   ├── Crew legend (left-aligned, small)
 │   ├── Day-of-week row (gray uppercase labels)
 │   └── Calendar grid (gap-px creates subtle grid lines)
-│       └── Day cells (white bg)
+│       └── Day cells (white bg, tall enough for multiple slots)
 │           ├── Day number (top-left)
-│           └── Slot boxes (stacked, colored by status)
+│           └── Slot boxes (stacked by start_time asc)
+│               ├── Time range  "8:00 – 10:00 AM"  (11px bold)
 │               ├── ● dot (crew color)
-│               ├── Crew name (11px medium)
-│               └── Status label (10px regular, faded)
+│               └── Crew name   "Team Alpha"        (10px regular)
 │
-└── Booking Modal (when slot clicked)
+└── Booking Modal (when available slot clicked)
     ├── Header (title + close button)
     ├── Divider
-    ├── Date + crew info
-    ├── Form fields (inputs with labels)
+    ├── Date + time + crew info  "Thu May 22 · 8:00–10:00 AM · Team Alpha"
+    ├── Form fields (Property Name, Contact Name, Email, Notes)
     └── Action buttons (cancel + confirm)
 ```
 

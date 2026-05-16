@@ -8,6 +8,8 @@
 
 ## TASK 1 — Project Scaffold
 
+- Create Vite + React project
+- Install all dependencies listed in the spec
 - Configure Tailwind with the design token values from the design doc
 - Set up CSS variables and globals.css
 - Import DM Sans font in index.html
@@ -53,12 +55,12 @@
 - Build src/hooks/useCalendarMonth.js
 - Build src/components/calendar/MonthNavigator.jsx
 - Build src/components/calendar/CrewLegend.jsx
-- Build src/components/calendar/SlotBadge.jsx using mock data
-- Build src/components/calendar/DayCell.jsx using mock data
+- Build src/components/calendar/SlotBadge.jsx — each box shows time range on top line, crew name on second line, colored by status. Use mock data with start_time and end_time fields
+- Build src/components/calendar/DayCell.jsx — renders a stacked list of SlotBadge boxes sorted by start_time ascending. Use mock data
 - Build src/components/calendar/CalendarGrid.jsx using mock data
 - Build src/pages/PublicCalendar.jsx wiring all calendar components together
 - Set up App.jsx and routing with react-router-dom
-- Verify: calendar grid renders correctly with mock slots, month navigation works, mobile layout looks correct
+- Verify: calendar grid renders with multiple time slot boxes per day, sorted by time, month navigation works, mobile layout looks correct
 
 ---
 
@@ -78,11 +80,11 @@
 ## TASK 6 — Booking Flow
 
 - Build src/hooks/useBooking.js with race condition protection
-- Build src/components/booking/BookingModal.jsx — fields: Property Name, Contact Name, Email, Notes
-- Wire SlotBadge click → calendarStore.openModal(slot)
+- Build src/components/booking/BookingModal.jsx — pre-filled header shows date, time range (e.g. "Thu May 22 · 8:00 – 10:00 AM"), and crew name. Form fields: Property Name, Contact Name, Email, Notes
+- Wire SlotBadge click → calendarStore.openModal(slot) — slot object must include date, start_time, end_time, crew name
 - Wire BookingModal to calendarStore selectedSlot and closeModal
 - Add Toaster to App.jsx
-- Verify: click available slot → modal opens → fill form → submit → slot turns red on both tabs simultaneously → success toast shown
+- Verify: click an available time slot → modal opens showing correct date and time → fill form → submit → that specific time slot turns red on both tabs simultaneously → success toast shown
 - Verify: simulate race condition (manually book slot in Supabase mid-flow) → error toast shown, modal stays open
 
 ---

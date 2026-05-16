@@ -1,4 +1,5 @@
 import { useCalendarStore } from '@/store/calendarStore'
+import { formatTimeRange } from '@/lib/dateUtils'
 import type { Slot } from '@/types/slot'
 
 interface SlotBadgeProps {
@@ -17,21 +18,21 @@ export function SlotBadge({ slot }: SlotBadgeProps) {
 
   return (
     <div
-      className={`flex items-start gap-1.5 px-[7px] py-[5px] rounded-md border transition-[background-color,opacity] duration-200 mb-[3px] select-none ${bg}`}
+      className={`flex flex-col gap-0.5 px-[6px] py-[4px] rounded-md border transition-[background-color,opacity] duration-200 mb-[3px] select-none w-full ${bg}`}
       onClick={() => { if (isAvailable) openModal(slot) }}
       role={isAvailable ? 'button' : undefined}
       tabIndex={isAvailable ? 0 : undefined}
       onKeyDown={(e) => { if (isAvailable && e.key === 'Enter') openModal(slot) }}
     >
-      <span
-        className="w-[7px] h-[7px] rounded-full flex-shrink-0 mt-[3px]"
-        style={{ backgroundColor: crew?.color ?? '#cbd5e1' }}
-      />
-      <div>
-        <span className="block text-[11px] font-medium leading-tight">{crew?.name ?? 'Unknown'}</span>
-        <span className="block text-[10px] font-normal opacity-80 leading-tight max-sm:hidden">
-          {isAvailable ? 'Available' : isBooked ? 'Booked' : 'Unavailable'}
-        </span>
+      <span className="block text-[11px] font-semibold leading-tight">
+        {formatTimeRange(slot.start_time, slot.end_time)}
+      </span>
+      <div className="flex items-center gap-1 max-sm:hidden">
+        <span
+          className="w-[6px] h-[6px] rounded-full flex-shrink-0"
+          style={{ backgroundColor: crew?.color ?? '#cbd5e1' }}
+        />
+        <span className="text-[10px] font-normal opacity-85">{crew?.name ?? 'Unknown'}</span>
       </div>
     </div>
   )

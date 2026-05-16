@@ -4,8 +4,8 @@ export interface Slot {
   id: string
   crew_id: string
   date: string
-  start_time: string | null
-  end_time: string | null
+  start_time: string
+  end_time: string
   status: SlotStatus
   job_type: string
   property_name: string | null

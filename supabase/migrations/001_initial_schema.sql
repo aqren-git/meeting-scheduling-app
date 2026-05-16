@@ -65,8 +65,8 @@ create table slots (
   id               uuid        primary key default gen_random_uuid(),
   crew_id          uuid        not null references crews(id) on delete restrict,
   date             date        not null,
-  start_time       time,
-  end_time         time,
+  start_time       time        not null,
+  end_time         time        not null,
   status           slot_status not null default 'available',
   job_type         job_type    not null default 'general',
   property_id      uuid        references properties(id) on delete set null,
@@ -81,7 +81,7 @@ create table slots (
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
   constraint chk_end_after_start check (
-    end_time is null or start_time is null or end_time > start_time
+    end_time > start_time
   ),
   constraint chk_booked_has_contact check (
     status != 'booked' or (booked_by_name is not null and booked_by_email is not null)
@@ -99,8 +99,8 @@ create index idx_slots_status on slots(status);
 create index idx_slots_crew_id on slots(crew_id);
 create index idx_slots_date_status on slots(date, status);
 create index idx_slots_crew_date on slots(crew_id, date);
-create unique index idx_unique_crew_booked_per_day on slots(crew_id, date) where status = 'booked';
-create unique index idx_unique_crew_time_slot on slots(crew_id, date, start_time) where status = 'booked' and start_time is not null;
+create index idx_slots_crew_date_time on slots(crew_id, date, start_time);
+create unique index idx_unique_crew_time_booked on slots(crew_id, date, start_time) where status = 'booked';
 create index idx_slots_booked_by_email on slots(booked_by_email) where status = 'booked';
 
 -- ============================================================

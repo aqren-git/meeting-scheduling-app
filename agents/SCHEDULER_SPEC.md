@@ -14,10 +14,11 @@ A web application with two views:
 
 ### Public Calendar View (`/`)
 - Shows a monthly calendar grid
-- Each day shows crew availability: **green = available**, **red = booked**, **gray = blocked/unavailable**
-- Multiple crews can be available on the same day (multi-lane view per day)
-- Clicking an available slot opens a booking modal
-- After booking, the slot updates in real time across all open browsers simultaneously
+- Each day cell shows all available time slots across all crews — e.g. 8:00 AM, 10:00 AM, 12:00 PM, 2:00 PM, 4:00 PM
+- Each time slot box shows: time range + crew name + status color (green / red / gray)
+- Multiple crews can have slots at the same time — each is its own separate bookable box
+- Clicking an available slot opens a booking modal pre-filled with the date, time, and crew
+- After booking, that specific time slot updates in real time across all open browsers
 - No login required — anyone with the link can view and book
 
 ### Admin Panel (`/admin`)
@@ -207,15 +208,16 @@ comment on table properties is 'Client properties. Linked to slots when booking 
 
 -- ============================================================
 -- SLOTS
--- Core scheduling unit. One slot = one crew on one date.
+-- Core scheduling unit. One slot = one crew at a specific time on a specific date.
+-- A crew can have multiple slots per day at different times.
 -- ============================================================
 create table slots (
   id               uuid        primary key default gen_random_uuid(),
   crew_id          uuid        not null references crews(id) on delete restrict,
                                -- RESTRICT not CASCADE: don't silently delete slot history
   date             date        not null,
-  start_time       time,                            -- null = full day (demo default)
-  end_time         time,                            -- null = full day (demo default)
+  start_time       time        not null,                  -- required: e.g. '09:00'
+  end_time         time        not null,                  -- required: e.g. '11:00'
   status           slot_status not null default 'available',
   job_type         job_type    not null default 'general',
 
@@ -240,7 +242,7 @@ create table slots (
 
   -- Constraints
   constraint chk_end_after_start check (
-    end_time is null or start_time is null or end_time > start_time
+    end_time > start_time
   ),
   constraint chk_booked_has_contact check (
     status != 'booked' or (booked_by_name is not null and booked_by_email is not null)
@@ -250,8 +252,9 @@ create table slots (
   )
 );
 
-comment on table slots is 'Core scheduling unit. One slot = one crew on one date (optionally time-bounded).';
-comment on column slots.start_time is 'Null means full-day. Populated when half-day scheduling is enabled.';
+comment on table slots is 'Core scheduling unit. One slot = one crew at a specific time on a specific date. Multiple slots per crew per day are allowed at different times.';
+comment on column slots.start_time is 'Slot start time. Required. e.g. 09:00';
+comment on column slots.end_time   is 'Slot end time. Required. Must be after start_time.';
 comment on column slots.property_id is 'FK to properties table. Null until properties are managed in-app.';
 comment on column slots.created_by is 'Will reference auth.users(id) once auth is added.';
 
@@ -276,21 +279,20 @@ create index idx_slots_crew_id
 create index idx_slots_date_status
   on slots(date, status);
 
--- Composite: crew + date (used for availability checks)
+-- Composite: crew + date (availability checks, day view queries)
 create index idx_slots_crew_date
   on slots(crew_id, date);
 
--- UNIQUE: prevent double-booking — one crew can only be 'booked' once per day
--- Partial index: only applies to booked slots, not available/blocked/cancelled
-create unique index idx_unique_crew_booked_per_day
-  on slots(crew_id, date)
-  where status = 'booked';
+-- Composite: crew + date + time (time-slot list ordering within a day)
+create index idx_slots_crew_date_time
+  on slots(crew_id, date, start_time);
 
--- If time-based slots are enabled, prevent time overlaps per crew
--- (Partial — only when both times are set)
-create unique index idx_unique_crew_time_slot
+-- UNIQUE: prevent double-booking — one crew cannot have two 'booked' slots
+-- starting at the same time on the same day.
+-- A crew CAN have multiple available slots per day at different times.
+create unique index idx_unique_crew_time_booked
   on slots(crew_id, date, start_time)
-  where status = 'booked' and start_time is not null;
+  where status = 'booked';
 
 -- Future: lookup bookings by email (PM searching their own bookings)
 create index idx_slots_booked_by_email
@@ -459,21 +461,38 @@ insert into crews (name, color, display_order) values
   ('Team Beta',  '#2563eb', 2),   -- blue-600
   ('Team Gamma', '#d97706', 3);   -- amber-600
 
--- Generate available slots for every weekday in the next 5 weeks
--- One slot per crew per weekday = 3 slots per day on the calendar
+-- Generate time slots for every weekday in the next 5 weeks.
+-- Each crew gets 5 time slots per weekday: 8am, 10am, 12pm, 2pm, 4pm (2hr each).
+-- This gives the calendar a realistic multi-slot-per-day appearance.
 do $$
 declare
   crew_record record;
   check_date  date := current_date;
   end_date    date := current_date + interval '35 days';
+  slot_times  time[] := array[
+    '08:00'::time,
+    '10:00'::time,
+    '12:00'::time,
+    '14:00'::time,
+    '16:00'::time
+  ];
+  slot_time   time;
 begin
   while check_date <= end_date loop
     -- Skip weekends (dow: 0=Sun, 6=Sat)
     if extract(dow from check_date) not in (0, 6) then
       for crew_record in select id from crews loop
-        insert into slots (crew_id, date, status)
-        values (crew_record.id, check_date, 'available')
-        on conflict do nothing;
+        foreach slot_time in array slot_times loop
+          insert into slots (crew_id, date, start_time, end_time, status)
+          values (
+            crew_record.id,
+            check_date,
+            slot_time,
+            slot_time + interval '2 hours',
+            'available'
+          )
+          on conflict do nothing;
+        end loop;
       end loop;
     end if;
     check_date := check_date + interval '1 day';

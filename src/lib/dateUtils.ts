@@ -27,3 +27,14 @@ export function isPastDate(date: Date) {
 export function formatDisplayDate(dateStr: string) {
   return format(new Date(dateStr), 'EEEE, MMMM d, yyyy')
 }
+
+function parseTime(timeStr: string): Date {
+  const [h, m] = timeStr.split(':').map(Number)
+  const d = new Date()
+  d.setHours(h, m, 0, 0)
+  return d
+}
+
+export function formatTimeRange(start: string, end: string): string {
+  return `${format(parseTime(start), 'h:mm a')} \u2013 ${format(parseTime(end), 'h:mm a')}`
+}
