@@ -4,8 +4,8 @@ import { CalendarDayList } from '@/components/calendar/CalendarDayList'
 import { MonthNavigator } from '@/components/calendar/MonthNavigator'
 import { CrewLegend } from '@/components/calendar/CrewLegend'
 import { BookingModal } from '@/components/booking/BookingModal'
-import { Spinner } from '@/components/ui/spinner'
 import { EmptyState } from '@/components/ui/empty-state'
+import { CalendarSkeleton } from '@/components/ui/skeleton'
 import { useCrews } from '@/hooks/useCrews'
 import { useSlots } from '@/hooks/useSlots'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -77,42 +77,40 @@ export default function PublicCalendar() {
         </div>
       )}
 
-      {/* ── Main Content ── */}
-      <main className="max-w-[1100px] mx-auto px-4 py-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-          {/* Toolbar */}
-          <div className="px-4 sm:px-6 pt-4 pb-3 border-b border-border">
-            <MonthNavigator />
-            <div className="mt-3 pt-3 border-t border-border/50">
-              <CrewLegend crews={crews} />
+      {/* ── Loading State: mirrored layout skeleton ── */}
+      {loading && <CalendarSkeleton view={view} />}
+
+      {/* ── Main Content (loaded) ── */}
+      {!loading && (
+        <main className="max-w-[1100px] mx-auto px-4 py-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+            {/* Toolbar */}
+            <div className="px-4 sm:px-6 pt-4 pb-3 border-b border-border">
+              <MonthNavigator />
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <CrewLegend crews={crews} />
+              </div>
+            </div>
+
+            {/* Calendar */}
+            <div>
+              {!hasSlots ? (
+                <div className="py-12">
+                  <EmptyState />
+                </div>
+              ) : view === 'month' ? (
+                <CalendarGrid slots={slots} />
+              ) : (
+                <CalendarDayList slots={slots} />
+              )}
             </div>
           </div>
 
-          {/* Calendar */}
-          <div>
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="flex flex-col items-center gap-3 text-text-secondary">
-                  <Spinner className="border-text-secondary/25 border-t-brand" />
-                  <span className="text-sm">Loading schedule&hellip;</span>
-                </div>
-              </div>
-            ) : !hasSlots ? (
-              <div className="py-12">
-                <EmptyState />
-              </div>
-            ) : view === 'month' ? (
-              <CalendarGrid slots={slots} />
-            ) : (
-              <CalendarDayList slots={slots} />
-            )}
-          </div>
-        </div>
-
-        <p className="text-xs text-text-muted text-center mt-4">
-          Availability updates in real time &middot; Reliance Building Services
-        </p>
-      </main>
+          <p className="text-xs text-text-muted text-center mt-4">
+            Availability updates in real time &middot; Reliance Building Services
+          </p>
+        </main>
+      )}
 
       <BookingModal />
     </div>

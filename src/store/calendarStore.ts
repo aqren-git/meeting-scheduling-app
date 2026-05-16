@@ -16,12 +16,19 @@ interface CalendarState {
   goToPrevMonth: () => void
 }
 
+function getInitialView(): CalendarView {
+  if (typeof window !== 'undefined' && window.innerWidth < 640) {
+    return 'list'
+  }
+  return 'month'
+}
+
 export const useCalendarStore = create<CalendarState>((set) => ({
   selectedSlot: null,
   isModalOpen: false,
   currentYear: new Date().getFullYear(),
   currentMonth: new Date().getMonth(),
-  view: 'month',
+  view: getInitialView(),
 
   openModal: (slot) => set({ selectedSlot: slot, isModalOpen: true }),
   closeModal: () => set({ selectedSlot: null, isModalOpen: false }),
