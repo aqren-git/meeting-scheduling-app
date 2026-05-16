@@ -1,10 +1,38 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-serve(async (req) => {
-  try {
-    const { date, crewName, propertyName, bookedByName, bookedByEmail, notes } = await req.json()
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
 
+function respond(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders })
+  }
+
+  let body
+  try {
+    body = await req.json()
+  } catch {
+    return respond({ error: 'invalid json' }, 400)
+  }
+
+  const { date, crewName, propertyName, bookedByName, bookedByEmail, notes } = body
+
+  if (!date || !crewName || !propertyName || !bookedByName || !bookedByEmail) {
+    return respond({ error: 'missing required fields' }, 400)
+  }
+
+  try {
     const supabaseClient = createClient(
       Deno.env.get('supabase_url')!,
       Deno.env.get('supabase_anon_key')!
@@ -16,7 +44,7 @@ serve(async (req) => {
       .eq('key', 'notification_email')
       .single()
 
-    const notificationEmail = settings?.value
+    const notificationEmail = settings?.value ?? 'monirhasnan@gmail.com'
 
     const html = `
       <div style="font-family: 'DM Sans', system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
@@ -64,17 +92,12 @@ serve(async (req) => {
     if (!res.ok) {
       const err = await res.text()
       console.error('Resend API error:', res.status, err)
+      return respond({ error: 'failed to send email' }, 500)
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { 'Content-Type': 'application/json' },
-      status: 200,
-    })
+    return respond({ ok: true })
   } catch (e) {
     console.error('notify-booking error:', e)
-    return new Response(JSON.stringify({ error: e.message }), {
-      headers: { 'Content-Type': 'application/json' },
-      status: 500,
-    })
+    return respond({ error: e.message }, 500)
   }
 })
