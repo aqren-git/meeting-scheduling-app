@@ -6,8 +6,8 @@ serve(async (req) => {
     const { date, crewName, propertyName, bookedByName, bookedByEmail, notes } = await req.json()
 
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('supabase_url')!,
+      Deno.env.get('supabase_anon_key')!
     )
 
     const { data: settings } = await supabaseClient
@@ -16,7 +16,7 @@ serve(async (req) => {
       .eq('key', 'notification_email')
       .single()
 
-    const notificationEmail = settings?.value ?? 'monirhasnan@gmail.com'
+    const notificationEmail = settings?.value
 
     const html = `
       <div style="font-family: 'DM Sans', system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
