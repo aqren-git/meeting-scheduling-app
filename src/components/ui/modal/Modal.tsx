@@ -25,7 +25,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white rounded-lg shadow-modal w-full mx-2 sm:mx-4 p-4 sm:p-6">
+      <div className="bg-white rounded-lg shadow-modal w-full max-w-md mx-2 sm:mx-4 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h2 className="text-sm sm:text-base font-semibold text-text-primary">
             {title ?? 'Modal'}
