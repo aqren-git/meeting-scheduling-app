@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useCalendarStore } from '@/store/calendarStore'
+import { ChevronLeft, ChevronRight, CalendarDays, List } from 'lucide-react'
+import { useCalendarStore, type CalendarView } from '@/store/calendarStore'
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -7,7 +7,7 @@ const MONTHS = [
 ]
 
 export function MonthNavigator() {
-  const { currentYear, currentMonth, goToNextMonth, goToPrevMonth } = useCalendarStore()
+  const { currentYear, currentMonth, goToNextMonth, goToPrevMonth, view, setView } = useCalendarStore()
   const now = new Date()
   const isCurrentMonth = currentYear === now.getFullYear() && currentMonth === now.getMonth()
 
@@ -15,9 +15,15 @@ export function MonthNavigator() {
     useCalendarStore.setState({ currentYear: now.getFullYear(), currentMonth: now.getMonth() })
   }
 
+  const views: { key: CalendarView; icon: typeof CalendarDays; label: string }[] = [
+    { key: 'month', icon: CalendarDays, label: 'Month' },
+    { key: 'list', icon: List, label: 'List' },
+  ]
+
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-1">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      {/* Centered month navigation — spec 6.2 */}
+      <div className="flex items-center justify-center gap-2 flex-1">
         <button
           onClick={goToPrevMonth}
           disabled={isCurrentMonth}
@@ -26,6 +32,9 @@ export function MonthNavigator() {
         >
           <ChevronLeft size={18} />
         </button>
+        <h3 className="text-base font-semibold text-text-primary min-w-[180px] text-center select-none">
+          {MONTHS[currentMonth]} {currentYear}
+        </h3>
         <button
           onClick={goToNextMonth}
           className="w-8 h-8 rounded-md flex items-center justify-center text-text-secondary hover:bg-surface-hover transition-colors"
@@ -35,21 +44,37 @@ export function MonthNavigator() {
         </button>
       </div>
 
-      <span className="text-[15px] font-semibold text-text-primary">
-        {MONTHS[currentMonth]} {currentYear}
-      </span>
-
-      <button
-        onClick={goToToday}
-        className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
-          isCurrentMonth
-            ? 'text-text-muted cursor-default'
-            : 'text-brand hover:bg-brand-light'
-        }`}
-        disabled={isCurrentMonth}
-      >
-        Today
-      </button>
+      {/* Today button & View Toggle */}
+      <div className="flex items-center justify-center gap-3">
+        {!isCurrentMonth && (
+          <button
+            onClick={goToToday}
+            className="text-sm text-brand underline hover:no-underline transition-colors"
+          >
+            Today
+          </button>
+        )}
+        <div className="flex items-center bg-surface rounded-md p-0.5 border border-border">
+          {views.map((v) => {
+            const Icon = v.icon
+            const active = view === v.key
+            return (
+              <button
+                key={v.key}
+                onClick={() => setView(v.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                  active
+                    ? 'bg-white text-text-primary shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <Icon size={14} />
+                {v.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }

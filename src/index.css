@@ -83,3 +83,23 @@ body {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.85); }
 }
+
+@keyframes slide-up-fade {
+  0% { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.slot-enter {
+  animation: slide-up-fade 0.2s ease-out both;
+}
+
+.slot-enter:nth-child(1) { animation-delay: 0ms; }
+.slot-enter:nth-child(2) { animation-delay: 30ms; }
+.slot-enter:nth-child(3) { animation-delay: 60ms; }
+.slot-enter:nth-child(4) { animation-delay: 90ms; }
+.slot-enter:nth-child(5) { animation-delay: 120ms; }

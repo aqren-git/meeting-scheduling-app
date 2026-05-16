@@ -4,7 +4,7 @@ import { useCalendarMonth } from '@/hooks/useCalendarMonth'
 import { DayCell } from './DayCell'
 import type { Slot } from '@/types/slot'
 
-const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DAYS_OF_WEEK = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
 interface CalendarGridProps {
   slots: Slot[]
@@ -25,20 +25,20 @@ export function CalendarGrid({ slots }: CalendarGridProps) {
   }, [slots])
 
   return (
-    <div className="p-0">
-      {/* Day-of-week header */}
-      <div className="grid grid-cols-7 border-b border-border">
+    <div>
+      {/* Spec 6.3: Day-of-week header — text-xs, font-medium, text-secondary, tracking-wide, uppercase */}
+      <div className="grid grid-cols-7 border-b border-border bg-surface/50">
         {DAYS_OF_WEEK.map((day) => (
           <div
             key={day}
-            className="py-2 text-[11px] font-medium text-text-muted tracking-wide text-center border-r border-border last:border-r-0"
+            className="py-2 text-xs font-medium text-text-secondary tracking-wide uppercase text-center"
           >
             {day}
           </div>
         ))}
       </div>
 
-      {/* Grid */}
+      {/* Spec 6.4: Grid with gap-px, bg-border for grid lines */}
       <div className="grid grid-cols-7 gap-px bg-border">
         {calendarDays.map((day, idx) => {
           const isWeekend = day.date ? [0, 6].includes(day.date.getDay()) : false

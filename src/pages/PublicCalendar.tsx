@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
+import { CalendarDayList } from '@/components/calendar/CalendarDayList'
 import { MonthNavigator } from '@/components/calendar/MonthNavigator'
 import { CrewLegend } from '@/components/calendar/CrewLegend'
 import { BookingModal } from '@/components/booking/BookingModal'
@@ -11,7 +12,7 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { getMonthRange } from '@/lib/dateUtils'
 
 export default function PublicCalendar() {
-  const { currentYear, currentMonth } = useCalendarStore()
+  const { currentYear, currentMonth, view } = useCalendarStore()
   const { crews, loading: crewsLoading, error: crewsError } = useCrews()
   const range = useMemo(() => getMonthRange(currentYear, currentMonth), [currentYear, currentMonth])
   const { slots, loading: slotsLoading, error: slotsError, realtimeStatus } = useSlots(range.start, range.end)
@@ -20,17 +21,20 @@ export default function PublicCalendar() {
   const error = crewsError || slotsError
   const hasSlots = slots.length > 0
 
+  const availableCount = slots.filter((s) => s.status === 'available').length
+  const bookedCount = slots.filter((s) => s.status === 'booked').length
+
   return (
     <div className="min-h-screen bg-surface">
       {/* ── Header ── */}
-      <header className="h-16 px-6 lg:px-8 flex items-center justify-between border-b border-border bg-surface-default sticky top-0 z-40">
+      <header className="h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between border-b border-border bg-white sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-text-inverse font-semibold text-sm">
+          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white font-bold text-sm shadow-sm">
             R
           </div>
-          <div>
-            <h1 className="text-sm font-semibold text-text-primary leading-tight">Reliance Building Services</h1>
-            <p className="text-[11px] text-text-secondary leading-tight">Irvine Scheduling</p>
+          <div className="leading-tight">
+            <h1 className="text-sm font-semibold text-text-primary">Reliance Building Services</h1>
+            <p className="text-[11px] text-text-secondary">Irvine Scheduling</p>
           </div>
         </div>
         <div className="flex items-center gap-2 bg-surface rounded-full px-3 py-1.5">
@@ -45,51 +49,68 @@ export default function PublicCalendar() {
         </div>
       </header>
 
-      {/* ── Main ── */}
-      <main className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {error && (
-          <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-lg mb-5 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
-            Unable to load schedule. Please check your connection.
+      {/* ── Stats Bar ── */}
+      {!loading && hasSlots && (
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-0">
+          <div className="flex items-center gap-4 text-xs text-text-secondary bg-white rounded-lg border border-border px-4 py-2.5 shadow-sm">
+            <span className="font-medium text-text-primary">Summary</span>
+            <span className="w-px h-4 bg-border" />
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-available-dot" />
+              <span><strong className="text-available-text">{availableCount}</strong> available</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-booked-dot" />
+              <span><strong className="text-booked-text">{bookedCount}</strong> booked</span>
+            </span>
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="bg-surface-default rounded-lg border border-border shadow-sm overflow-hidden">
-          {/* ── Calendar Toolbar ── */}
-          <div className="px-4 sm:px-6 pt-5 pb-3 border-b border-border">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <div>
-                <h2 className="text-base font-semibold text-text-primary">Schedule</h2>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  Select a green slot to book your crew
-                </p>
-              </div>
-            </div>
+      {/* ── Error Banner ── */}
+      {error && (
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg flex items-center gap-2.5">
+            <span className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-xs font-bold">!</span>
+            Unable to load schedule. Please check your connection and refresh.
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Content ── */}
+      <main className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+          {/* Toolbar */}
+          <div className="px-5 sm:px-6 pt-4 pb-3 border-b border-border">
             <MonthNavigator />
-            <CrewLegend crews={crews} />
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <CrewLegend crews={crews} />
+            </div>
           </div>
 
-          {/* ── Calendar Body ── */}
-          <div className="p-0">
+          {/* Calendar */}
+          <div>
             {loading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="flex items-center gap-2.5 text-text-secondary">
-                  <Spinner size={18} className="border-text-secondary/30 border-t-text-secondary" />
-                  <span className="text-sm">Loading schedule\u2026</span>
+                <div className="flex flex-col items-center gap-3 text-text-secondary">
+                  <Spinner size={20} className="border-text-secondary/25 border-t-brand" />
+                  <span className="text-sm">Loading schedule&hellip;</span>
                 </div>
               </div>
             ) : !hasSlots ? (
               <div className="py-12">
                 <EmptyState />
               </div>
-            ) : (
+            ) : view === 'month' ? (
               <CalendarGrid slots={slots} />
+            ) : (
+              <CalendarDayList slots={slots} />
             )}
           </div>
         </div>
 
         <p className="text-[11px] text-text-muted text-center mt-4">
-          Availability updates in real time \u00b7 Reliance Building Services
+          Availability updates in real time &middot; Reliance Building Services
         </p>
       </main>
 

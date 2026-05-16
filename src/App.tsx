@@ -1,23 +1,10 @@
-import { Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { RouterProvider } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-
-const PublicCalendar = lazy(() => import('@/pages/PublicCalendar'))
-
-function FullPageLoader() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-default">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-brand/30 border-t-brand animate-spin" />
-        <p className="text-sm text-text-secondary">Loading\u2026</p>
-      </div>
-    </div>
-  )
-}
+import { router } from '@/app/router'
 
 function App() {
   return (
-    <BrowserRouter>
+    <>
       <Toaster
         position="top-center"
         toastOptions={{
@@ -34,12 +21,8 @@ function App() {
           error: { iconTheme: { primary: '#dc2626', secondary: '#fff' }, duration: 4000 },
         }}
       />
-      <Suspense fallback={<FullPageLoader />}>
-        <Routes>
-          <Route path="/" element={<PublicCalendar />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+      <RouterProvider router={router} />
+    </>
   )
 }
 
