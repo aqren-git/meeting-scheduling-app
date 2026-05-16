@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 import { CalendarDayList } from '@/components/calendar/CalendarDayList'
 import { MonthNavigator } from '@/components/calendar/MonthNavigator'
@@ -10,6 +11,8 @@ import { useCrews } from '@/hooks/useCrews'
 import { useSlots } from '@/hooks/useSlots'
 import { useCalendarStore } from '@/store/calendarStore'
 import { getMonthRange } from '@/lib/dateUtils'
+import { ROUTES } from '@/lib/routes'
+import { Settings } from 'lucide-react'
 
 export default function PublicCalendar() {
   const { currentYear, currentMonth, view } = useCalendarStore()
@@ -37,15 +40,24 @@ export default function PublicCalendar() {
             <p className="text-xs text-text-secondary">Irvine Scheduling</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-surface rounded-full px-3 py-1.5">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              realtimeStatus === 'connected' ? 'bg-green-500 animate-[pulse-live_2s_infinite]' : 'bg-amber-500'
-            }`}
-          />
-          <span className="text-xs font-medium text-text-secondary">
-            {realtimeStatus === 'connected' ? 'Live' : 'Reconnecting\u2026'}
-          </span>
+        <div className="flex items-center gap-2">
+          <Link
+            to={ROUTES.ADMIN}
+            className="flex items-center gap-1.5 text-xs font-medium text-text-secondary hover:text-brand transition-colors bg-surface hover:bg-surface-hover rounded-full px-3 py-1.5"
+          >
+            <Settings size={14} />
+            <span className="hidden sm:inline">Admin</span>
+          </Link>
+          <div className="flex items-center gap-2 bg-surface rounded-full px-3 py-1.5">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                realtimeStatus === 'connected' ? 'bg-green-500 animate-[pulse-live_2s_infinite]' : 'bg-amber-500'
+              }`}
+            />
+            <span className="text-xs font-medium text-text-secondary">
+              {realtimeStatus === 'connected' ? 'Live' : 'Reconnecting\u2026'}
+            </span>
+          </div>
         </div>
       </header>
 

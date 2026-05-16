@@ -139,3 +139,48 @@ supabase functions deploy notify-booking
 ### 5. Verify
 - Complete a booking in the app
 - Check `monirhasnan@gmail.com` inbox — email should arrive within 30 seconds
+
+---
+
+## Admin Panel — Full CRUD Dashboard
+
+Implemented via `agents/ADMIN_PLAN.md`. 5-tab admin dashboard at `/admin` route, no auth (demo mode).
+
+### New Files Created
+| File | Purpose |
+|---|---|
+| `src/types/property.ts` | Property TS interface |
+| `src/hooks/useAdminSlots.ts` | Fetch slots by date range + all bookings |
+| `src/hooks/useProperties.ts` | Property CRUD hook |
+| `src/components/admin/CrewManager.tsx` | Crew CRUD (name, color, order, active) |
+| `src/components/admin/SlotManager.tsx` | Full slot CRUD + bulk create + show booker info |
+| `src/components/admin/PropertyManager.tsx` | Property CRUD |
+| `src/components/admin/BookingsList.tsx` | All bookings table + cancel + detail modal |
+| `src/components/admin/SettingsPanel.tsx` | App settings editor + stats dashboard |
+| `src/pages/AdminPanel.tsx` | Sidebar nav + tabbed content layout |
+
+### Modified Files
+| File | Change |
+|---|---|
+| `src/app/router.tsx` | Added `/admin` route with lazy-loaded AdminPanel |
+
+### Admin Tabs
+1. **Slots** (`/admin/slots`) — Week-navigation, crew/status filters, add/bulk-create/edit/delete slots. Booked slots show booker info (name, email, property) as second line. Bulk creator generates slots matching seed pattern.
+2. **Crews** (`/admin/crews`) — Table with name, color picker, display order, active toggle. Soft-delete with slot count warning.
+3. **Properties** (`/admin/properties`) — CRUD table for client properties.
+4. **Bookings** (`/admin/bookings`) — All booked slots table with crew/date/search filters, pagination, detail modal with full booker info, cancel booking.
+5. **Settings** (`/admin/settings`) — Edit notification email, company name, calendar title. Stats summary (crew/slot/booking/property counts).
+
+### States Covered
+- Loading: inline spinners and full skeletons per tab
+- Empty: meaningful messages per tab ("No crews yet", "No bookings yet.", etc.)
+- Error: error banners with retry + toast notifications
+- Filtered: "No slots match your filters." messages
+
+### Key Requirement — Booker Info Display
+Every booked slot in the admin panel shows:
+```
+🔴 10:00–12:00  ● Team Alpha   Booked                    [🗑]
+   📋 John Smith · john@email.com · 1800 Main St · May 11, 9:30 AM
+```
+The Bookings tab also has a detail modal with full booking details + cancel action.
