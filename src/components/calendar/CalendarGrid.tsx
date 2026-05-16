@@ -4,7 +4,7 @@ import { useCalendarMonth } from '@/hooks/useCalendarMonth'
 import { DayCell } from './DayCell'
 import type { Slot } from '@/types/slot'
 
-const DAYS_OF_WEEK = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 interface CalendarGridProps {
   slots: Slot[]
@@ -25,18 +25,21 @@ export function CalendarGrid({ slots }: CalendarGridProps) {
   }, [slots])
 
   return (
-    <div>
-      <div className="grid grid-cols-7">
+    <div className="p-0">
+      {/* Day-of-week header */}
+      <div className="grid grid-cols-7 border-b border-border">
         {DAYS_OF_WEEK.map((day) => (
           <div
             key={day}
-            className="py-2 text-[11px] font-medium text-text-secondary tracking-wide uppercase text-center border-b border-border"
+            className="py-2 text-[11px] font-medium text-text-muted tracking-wide text-center border-r border-border last:border-r-0"
           >
             {day}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-px bg-border border border-border rounded-md overflow-hidden">
+
+      {/* Grid */}
+      <div className="grid grid-cols-7 gap-px bg-border">
         {calendarDays.map((day, idx) => {
           const isWeekend = day.date ? [0, 6].includes(day.date.getDay()) : false
           const daySlots = day.dateStr ? (slotsByDate.get(day.dateStr) ?? []) : []

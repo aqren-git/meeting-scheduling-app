@@ -55,6 +55,31 @@ All in `src/components/ui/` with `index.ts` re-exports:
 - SlotBadge click → `calendarStore.openModal(slot)` already wired from Task 4
 - `Toaster` already in `App.tsx` from Task 4
 
+## Polish — Calendar Design Improvements
+- **Header**: Sticky, brand logo block (blue "R" square), company name + subtitle, live badge in a pill container
+- **Calendar card**: `bg-surface-default rounded-lg border shadow-sm` wrapping the entire calendar section
+- **Calendar toolbar**: Sectioned into a toolbar area with title, subtitle, month nav, and crew legend in a bordered header
+- **MonthNavigator**: Left-aligned arrows, center month label, right-aligned "Today" button — balanced layout
+- **CrewLegend**: Wrapped dots with subtle `ring-1 ring-black/5` for depth
+- **SlotBadge**: `active:scale-[0.98]` press effect on available slots, `tracking-tight` on time labels, refined padding
+- **DayCell**: Today cell gets `ring-1 ring-brand/15 ring-inset`; day numbers centered; empty days show `—` dash; 160px min-height
+- **CalendarGrid**: Day-of-week headers use `text-text-muted` instead of `text-text-secondary` for visual hierarchy
+- **App.tsx**: Lazy-loaded PublicCalendar with `Suspense` + branded full-page loader; `Toaster` configured with default styles
+- **Footer**: Subtle "Availability updates in real time" line below the calendar
+
+## Polish — Email Design (Edge Function)
+- **Professional card layout**: White card with rounded corners (12px), shadow, and light gray background outside
+- **Brand header**: Blue "R" logo square + company name + "Booking Confirmation" subtitle
+- **Status badge**: Green dot + "BOOKING CONFIRMED" label at top of card
+- **Property name**: Hero-size heading (18px semibold)
+- **Detail table**: Label/value pairs with consistent spacing — Date, Crew, Property, Contact, Email (clickable), Notes
+- **Footer note**: Light gray section at card bottom explaining the source of the email
+- **Company footer**: "Reliance Building Services · Irvine, CA" + "Sent automatically..."
+- **Plain text fallback**: Clean monospaced-aligned text version of all details
+
+## Polish — README.md
+Comprehensive documentation covering: project overview, tech stack table, full folder structure, step-by-step setup (clone, Supabase, migrations, seed, Realtime, dev server), booking flow explanation, race condition protection details, Edge Function deploy instructions, design system summary, available scripts, env vars reference, database schema overview, deployment guide (Vercel/Netlify), demo script, and sprint completion chart.
+
 ## Time-Slot Migration (Updated Design)
 
 All slots are now **time-based** — each slot has a required `start_time` and `end_time` (2-hour blocks). A crew can have multiple slots per day at different times.
