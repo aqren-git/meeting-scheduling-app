@@ -25,19 +25,19 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white rounded-lg shadow-modal max-w-md w-full mx-4 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-text-primary">
+      <div className="bg-white rounded-lg shadow-modal w-full mx-2 sm:mx-4 p-4 sm:p-6">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h2 className="text-sm sm:text-base font-semibold text-text-primary">
             {title ?? 'Modal'}
           </h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-md flex items-center justify-center text-text-secondary hover:bg-surface-hover transition-colors"
+            className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:bg-surface-hover transition-colors"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
-        <div className="border-t border-border mb-4" />
+        <div className="border-t border-border mb-3 sm:mb-4" />
         {children}
       </div>
     </div>

@@ -65,7 +65,7 @@ export function BookingModal() {
       <p className="text-sm font-medium text-text-primary mb-1">{dateDisplay}</p>
       <div className="flex items-center gap-1.5 mb-5">
         {crew && (
-          <span className="w-[7px] h-[7px] rounded-full" style={{ backgroundColor: crew.color }} />
+          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: crew.color }} />
         )}
         <span className="text-sm text-text-secondary">{crew?.name ?? 'Unknown'}</span>
       </div>

@@ -27,14 +27,14 @@ export default function PublicCalendar() {
   return (
     <div className="min-h-screen bg-surface">
       {/* ── Header ── */}
-      <header className="h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between border-b border-border bg-white sticky top-0 z-40">
+      <header className="h-16 flex items-center justify-between border-b border-border bg-white sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white font-bold text-sm shadow-sm">
             R
           </div>
-          <div className="leading-tight">
-            <h1 className="text-sm font-semibold text-text-primary">Reliance Building Services</h1>
-            <p className="text-[11px] text-text-secondary">Irvine Scheduling</p>
+          <div className="leading-tight hidden sm:block">
+            <h1 className="text-base font-semibold text-text-primary">Reliance Building Services</h1>
+            <p className="text-xs text-text-secondary">Irvine Scheduling</p>
           </div>
         </div>
         <div className="flex items-center gap-2 bg-surface rounded-full px-3 py-1.5">
@@ -43,7 +43,7 @@ export default function PublicCalendar() {
               realtimeStatus === 'connected' ? 'bg-green-500 animate-[pulse-live_2s_infinite]' : 'bg-amber-500'
             }`}
           />
-          <span className="text-[11px] font-medium text-text-secondary">
+          <span className="text-xs font-medium text-text-secondary">
             {realtimeStatus === 'connected' ? 'Live' : 'Reconnecting\u2026'}
           </span>
         </div>
@@ -51,16 +51,16 @@ export default function PublicCalendar() {
 
       {/* ── Stats Bar ── */}
       {!loading && hasSlots && (
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-0">
-          <div className="flex items-center gap-4 text-xs text-text-secondary bg-white rounded-lg border border-border px-4 py-2.5 shadow-sm">
-            <span className="font-medium text-text-primary">Summary</span>
-            <span className="w-px h-4 bg-border" />
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-available-dot" />
+        <div className="px-4 pt-4 pb-0">
+          <div className="flex items-center gap-2 text-xs text-text-secondary bg-white rounded-lg border border-border px-3 py-2.5 shadow-sm overflow-x-auto">
+            <span className="font-medium text-text-primary shrink-0">Summary</span>
+            <span className="w-px h-2.5 bg-border shrink-0" />
+            <span className="flex items-center gap-1.5 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-available-dot" />
               <span><strong className="text-available-text">{availableCount}</strong> available</span>
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-booked-dot" />
+            <span className="flex items-center gap-1.5 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-booked-dot" />
               <span><strong className="text-booked-text">{bookedCount}</strong> booked</span>
             </span>
           </div>
@@ -69,19 +69,19 @@ export default function PublicCalendar() {
 
       {/* ── Error Banner ── */}
       {error && (
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg flex items-center gap-2.5">
-            <span className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-xs font-bold">!</span>
+        <div className="px-4 pt-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-3 rounded-lg flex items-center gap-2.5">
+            <span className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-xs font-bold">!</span>
             Unable to load schedule. Please check your connection and refresh.
           </div>
         </div>
       )}
 
       {/* ── Main Content ── */}
-      <main className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <main className="max-w-[1100px] mx-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           {/* Toolbar */}
-          <div className="px-5 sm:px-6 pt-4 pb-3 border-b border-border">
+          <div className="px-4 sm:px-6 pt-4 pb-3 border-b border-border">
             <MonthNavigator />
             <div className="mt-3 pt-3 border-t border-border/50">
               <CrewLegend crews={crews} />
@@ -93,7 +93,7 @@ export default function PublicCalendar() {
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <div className="flex flex-col items-center gap-3 text-text-secondary">
-                  <Spinner size={20} className="border-text-secondary/25 border-t-brand" />
+                  <Spinner className="border-text-secondary/25 border-t-brand" />
                   <span className="text-sm">Loading schedule&hellip;</span>
                 </div>
               </div>
@@ -109,7 +109,7 @@ export default function PublicCalendar() {
           </div>
         </div>
 
-        <p className="text-[11px] text-text-muted text-center mt-4">
+        <p className="text-xs text-text-muted text-center mt-4">
           Availability updates in real time &middot; Reliance Building Services
         </p>
       </main>

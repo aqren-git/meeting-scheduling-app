@@ -25,36 +25,41 @@ export function CalendarGrid({ slots }: CalendarGridProps) {
   }, [slots])
 
   return (
-    <div>
-      {/* Spec 6.3: Day-of-week header — text-xs, font-medium, text-secondary, tracking-wide, uppercase */}
-      <div className="grid grid-cols-7 border-b border-border bg-surface/50">
-        {DAYS_OF_WEEK.map((day) => (
-          <div
-            key={day}
-            className="py-2 text-xs font-medium text-text-secondary tracking-wide uppercase text-center"
-          >
-            {day}
-          </div>
-        ))}
-      </div>
+    /* On mobile (<640px), the grid is horizontally scrollable with 130px-wide columns
+       so each cell has room for the day number and slot times.
+       On tablet+, the grid fills available width naturally. */
+    <div className="overflow-x-auto">
+      <div className="min-w-[910px] sm:min-w-0">
+        {/* Spec 6.3: Day-of-week header — text-xs, font-medium, text-secondary, tracking-wide, uppercase */}
+        <div className="grid grid-cols-7 border-b border-border bg-surface/50">
+          {DAYS_OF_WEEK.map((day) => (
+            <div
+              key={day}
+              className="py-2 text-xs font-medium text-text-secondary tracking-wide uppercase text-center"
+            >
+              {day}
+            </div>
+          ))}
+        </div>
 
-      {/* Spec 6.4: Grid with gap-px, bg-border for grid lines */}
-      <div className="grid grid-cols-7 gap-px bg-border">
-        {calendarDays.map((day, idx) => {
-          const isWeekend = day.date ? [0, 6].includes(day.date.getDay()) : false
-          const daySlots = day.dateStr ? (slotsByDate.get(day.dateStr) ?? []) : []
-          return (
-            <DayCell
-              key={idx}
-              dayNumber={day.dayNumber}
-              isPadding={day.isPadding}
-              isPast={day.isPast}
-              isToday={day.isToday}
-              isWeekend={isWeekend}
-              slots={daySlots}
-            />
-          )
-        })}
+        {/* Spec 6.4: Grid with gap-px, bg-border for grid lines */}
+        <div className="grid grid-cols-7 gap-px bg-border">
+          {calendarDays.map((day, idx) => {
+            const isWeekend = day.date ? [0, 6].includes(day.date.getDay()) : false
+            const daySlots = day.dateStr ? (slotsByDate.get(day.dateStr) ?? []) : []
+            return (
+              <DayCell
+                key={idx}
+                dayNumber={day.dayNumber}
+                isPadding={day.isPadding}
+                isPast={day.isPast}
+                isToday={day.isToday}
+                isWeekend={isWeekend}
+                slots={daySlots}
+              />
+            )
+          })}
+        </div>
       </div>
     </div>
   )
