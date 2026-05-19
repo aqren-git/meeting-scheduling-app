@@ -30,31 +30,30 @@ export default function PublicCalendar() {
   return (
     <div className="min-h-screen bg-surface">
       {/* ── Header ── */}
-      <header className="h-16 flex items-center justify-between border-b border-border bg-white sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white font-bold text-sm shadow-sm">
+      <header className="h-14 flex items-center justify-between border-b border-border bg-white sticky top-0 z-40 px-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0">
             R
           </div>
-          <div className="leading-tight hidden sm:block">
-            <h1 className="text-base font-semibold text-text-primary">Reliance Building Services</h1>
-            <p className="text-xs text-text-secondary">Irvine Scheduling</p>
-          </div>
+          <span className="text-sm font-medium text-text-primary leading-tight truncate max-w-[140px] sm:max-w-none">
+            Reliance Scheduling
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <Link
             to={ROUTES.ADMIN}
-            className="flex items-center gap-1.5 text-xs font-medium text-text-secondary hover:text-brand transition-colors bg-surface hover:bg-surface-hover rounded-full px-3 py-1.5"
+            className="flex items-center gap-1.5 text-xs font-semibold text-brand bg-brand-light/50 hover:bg-brand-light border border-brand/15 rounded-full px-3 py-1.5 transition-colors"
           >
-            <Settings size={14} />
-            <span className="hidden sm:inline">Admin</span>
+            <Settings size={13} />
+            <span>Admin</span>
           </Link>
-          <div className="flex items-center gap-2 bg-surface rounded-full px-3 py-1.5">
+          <div className="flex items-center gap-1.5 bg-surface rounded-full px-2.5 py-1.5">
             <span
-              className={`w-2 h-2 rounded-full ${
+              className={`w-1.5 h-1.5 rounded-full ${
                 realtimeStatus === 'connected' ? 'bg-green-500 animate-[pulse-live_2s_infinite]' : 'bg-amber-500'
               }`}
             />
-            <span className="text-xs font-medium text-text-secondary">
+            <span className="text-[11px] font-medium text-text-secondary leading-none">
               {realtimeStatus === 'connected' ? 'Live' : 'Reconnecting\u2026'}
             </span>
           </div>

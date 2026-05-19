@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Pencil, Trash2, Plus, AlertTriangle } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Search, Pencil, Trash2, Plus, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
@@ -43,7 +43,11 @@ export function CrewManager() {
   /* data */
   const [crews, setCrews] = useState<CrewRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [showInactive, setShowInactive] = useState(false)
+  const [searching, setSearching] = useState(false)
+
+  /* search */
+  const [searchQuery, setSearchQuery] = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   /* modal */
   const [modalOpen, setModalOpen] = useState(false)
@@ -58,14 +62,19 @@ export function CrewManager() {
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
-  /* ── Fetch ── */
-  async function fetchCrews() {
-    setLoading(true)
+  /* ── Fetch (server-side search) ── */
+  async function fetchCrews(search?: string) {
+    if (search === undefined) {
+      setLoading(true)
+    } else {
+      setSearching(true)
+    }
     try {
-      const { data, error } = await supabase
-        .from('crews')
-        .select('*')
-        .order('display_order', { ascending: true })
+      let query = supabase.from('crews').select('*')
+      if (search) {
+        query = query.ilike('name', `%${search}%`)
+      }
+      const { data, error } = await query.order('display_order', { ascending: true })
 
       if (error) throw error
       setCrews(data ?? [])
@@ -73,14 +82,20 @@ export function CrewManager() {
       showErrorToast(e instanceof Error ? e.message : 'Failed to load crews')
     } finally {
       setLoading(false)
+      setSearching(false)
     }
   }
 
-  /* eslint-disable-next-line react-hooks/set-state-in-effect */
   useEffect(() => { fetchCrews() }, [])
 
-  /* ── Filtered list ── */
-  const filteredCrews = showInactive ? crews : crews.filter((c) => c.is_active)
+  /* ── Debounced search ── */
+  function handleSearch(value: string) {
+    setSearchQuery(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => fetchCrews(value.trim()), 350)
+  }
+
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
 
   /* ── Form helpers ── */
   function openAdd() {
@@ -140,7 +155,7 @@ export function CrewManager() {
       }
 
       setModalOpen(false)
-      await fetchCrews()
+      await fetchCrews(searchQuery.trim() || undefined)
     } catch (e) {
       showErrorToast(e instanceof Error ? e.message : 'Failed to save crew')
     } finally {
@@ -180,7 +195,7 @@ export function CrewManager() {
       showSuccessToast(`"${deleteTarget.name}" deactivated`)
       setDeleteConfirmOpen(false)
       setDeleteTarget(null)
-      await fetchCrews()
+      await fetchCrews(searchQuery.trim() || undefined)
     } catch (e) {
       showErrorToast(e instanceof Error ? e.message : 'Failed to deactivate crew')
     } finally {
@@ -196,7 +211,7 @@ export function CrewManager() {
         .update({ is_active: !crew.is_active })
         .eq('id', crew.id)
       if (error) throw error
-      await fetchCrews()
+      await fetchCrews(searchQuery.trim() || undefined)
     } catch (e) {
       showErrorToast(e instanceof Error ? e.message : 'Failed to update crew')
     }
@@ -253,28 +268,61 @@ export function CrewManager() {
         </Button>
       </div>
 
-      {/* ── Filter toggle ── */}
-      <label className="flex items-center gap-2 mb-4 text-sm text-text-secondary cursor-pointer select-none">
+      {/* ── Search ── */}
+      <div className="relative mb-4">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
         <input
-          type="checkbox"
-          checked={showInactive}
-          onChange={(e) => setShowInactive(e.target.checked)}
-          className="accent-brand w-4 h-4 rounded border-border"
+          type="text"
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Search crews by name..."
+          className="w-full h-9 pl-9 pr-3 rounded-md border border-border text-sm text-text-primary bg-surface-default outline-none focus:border-brand focus:shadow-[0_0_0_3px_rgba(26,86,219,0.12)] transition-[border-color,box-shadow] duration-150"
         />
-        Show inactive
-      </label>
+      </div>
+
+      {/* ── Searching skeleton ── */}
+      {searching && (
+        <div className="overflow-x-auto rounded-lg border border-border shadow-sm mb-4">
+          <table className="w-full text-sm">
+            <thead className="bg-surface">
+              <tr className="text-left text-text-secondary text-xs uppercase tracking-wider">
+                <th className="px-3 py-2.5 font-medium w-10"><Skeleton className="w-4 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium"><Skeleton className="w-8 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium"><Skeleton className="w-12 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium"><Skeleton className="w-16 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium"><Skeleton className="w-20 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium"><Skeleton className="w-10 h-4" /></th>
+                <th className="px-3 py-2.5 font-medium w-20"><Skeleton className="w-12 h-4" /></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i}>
+                  <td className="px-3 py-2.5"><Skeleton className="w-4 h-4" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-5 h-5 rounded-sm" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-32 h-4" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-6 h-4" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-8 h-4" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-6 h-4" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="w-16 h-6" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* ── Empty state ── */}
-      {filteredCrews.length === 0 && (
+      {!searching && crews.length === 0 && (
         <EmptyState
-          icon={<Plus className="w-10 h-10 text-text-muted mb-3" />}
-          title="No crews yet"
-          message="Add one to get started."
+          icon={<Search className="w-10 h-10 text-text-muted mb-3" />}
+          title={searchQuery ? 'No crews match your search' : 'No crews yet'}
+          message={searchQuery ? 'Try a different name.' : 'Add one to get started.'}
         />
       )}
 
       {/* ── Table ── */}
-      {filteredCrews.length > 0 && (
+      {!searching && crews.length > 0 && (
         <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
           <table className="w-full text-sm">
             <thead>
@@ -289,7 +337,7 @@ export function CrewManager() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredCrews.map((crew, idx) => (
+              {crews.map((crew, idx) => (
                 <tr key={crew.id} className="hover:bg-surface-hover transition-colors">
                   <td className="px-3 py-2.5 text-text-muted">{idx + 1}</td>
                   <td className="px-3 py-2.5">

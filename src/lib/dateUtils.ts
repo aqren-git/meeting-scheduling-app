@@ -24,6 +24,10 @@ export function isPastDate(date: Date) {
   return isBefore(startOfDay(date), startOfDay(new Date()))
 }
 
+export function isSlotInPast(date: string, startTime: string): boolean {
+  return new Date(`${date}T${startTime}`) <= new Date()
+}
+
 export function formatDisplayDate(dateStr: string) {
   return format(new Date(dateStr), 'EEEE, MMMM d, yyyy')
 }

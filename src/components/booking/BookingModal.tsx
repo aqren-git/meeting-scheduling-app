@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { Input, Textarea } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { formatDisplayDate, formatTimeRange } from '@/lib/dateUtils'
+import { formatDisplayDate, formatTimeRange, isSlotInPast } from '@/lib/dateUtils'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useBooking } from '@/hooks/useBooking'
 import type { Slot } from '@/types/slot'
@@ -23,6 +23,26 @@ function BookingForm({ slot, closeModal }: BookingFormProps) {
 
   const crew = slot.crews
   const dateDisplay = `${formatDisplayDate(slot.date)} \u00b7 ${formatTimeRange(slot.start_time, slot.end_time)}`
+
+  if (isSlotInPast(slot.date, slot.start_time)) {
+    return (
+      <>
+        <p className="text-sm font-medium text-text-primary mb-1">{dateDisplay}</p>
+        <div className="flex items-center gap-1.5 mb-5">
+          {crew && (
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: crew.color }} />
+          )}
+          <span className="text-sm text-text-secondary">{crew?.name ?? 'Unknown'}</span>
+        </div>
+        <div className="py-8 text-center">
+          <p className="text-sm text-text-muted">This time slot has already passed and is no longer available for booking.</p>
+        </div>
+        <div className="flex justify-end mt-6">
+          <Button variant="ghost" onClick={closeModal}>Close</Button>
+        </div>
+      </>
+    )
+  }
 
   function validate() {
     const errs: Record<string, string> = {}
@@ -45,6 +65,8 @@ function BookingForm({ slot, closeModal }: BookingFormProps) {
       bookedByEmail: email.trim(),
       propertyName: propertyName.trim(),
       notes: notes.trim() || undefined,
+      date: slot.date,
+      startTime: slot.start_time,
     })
     if (success) closeModal()
   }

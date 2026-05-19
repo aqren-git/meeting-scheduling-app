@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAllBookings } from '@/hooks/useAdminSlots'
 import { useCrews } from '@/hooks/useCrews'
@@ -6,16 +6,16 @@ import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton/Skeleton'
+import { Pagination } from '@/components/ui/pagination'
 import { EmptyState } from '@/components/ui/empty-state'
 import { showSuccessToast, showErrorToast } from '@/components/ui/toast/toastConfig'
 import { format, parseISO } from 'date-fns'
-import { Search, X, ChevronLeft, ChevronRight, CalendarX2 } from 'lucide-react'
+import { Search, X, CalendarX2 } from 'lucide-react'
 import type { Slot } from '@/types/slot'
 
 const ROWS_PER_PAGE = 20
 
 export function BookingsList() {
-  const { bookings, loading, error } = useAllBookings()
   const { crews } = useCrews()
 
   // ── Filters ──
@@ -34,42 +34,18 @@ export function BookingsList() {
   // ── Refresh counter (re-fetches after cancel) ──
   const [refreshKey, setRefreshKey] = useState(0)
 
-  // ── Filtered Data ──
-  const filtered = useMemo(() => {
-    let result = [...bookings]
+  // ── Server-side paginated data ──
+  const { bookings, total, loading, error } = useAllBookings({
+    page,
+    pageSize: ROWS_PER_PAGE,
+    crewFilter: crewFilter || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    searchText: searchText || undefined,
+    refreshKey,
+  })
 
-    // Crew filter
-    if (crewFilter) {
-      result = result.filter((s) => s.crew_id === crewFilter)
-    }
-
-    // Date range
-    if (dateFrom) {
-      result = result.filter((s) => s.date >= dateFrom)
-    }
-    if (dateTo) {
-      result = result.filter((s) => s.date <= dateTo)
-    }
-
-    // Search text (property name or booked by name)
-    if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase()
-      result = result.filter(
-        (s) =>
-          (s.property_name ?? '').toLowerCase().includes(q) ||
-          (s.booked_by_name ?? '').toLowerCase().includes(q) ||
-          (s.booked_by_email ?? '').toLowerCase().includes(q)
-      )
-    }
-
-    return result
-  }, [bookings, crewFilter, dateFrom, dateTo, searchText, refreshKey])
-
-  // ── Pagination ──
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE))
-  const safePage = Math.min(page, totalPages)
-  const startIndex = (safePage - 1) * ROWS_PER_PAGE
-  const pageRows = filtered.slice(startIndex, startIndex + ROWS_PER_PAGE)
+  const totalPages = Math.max(1, Math.ceil(total / ROWS_PER_PAGE))
 
   // ── Handlers ──
 
@@ -230,7 +206,7 @@ export function BookingsList() {
           </div>
 
           {/* ── Empty States ── */}
-          {bookings.length === 0 && (
+          {total === 0 && !crewFilter && !dateFrom && !dateTo && !searchText && (
             <EmptyState
               icon={<CalendarX2 className="w-10 h-10 text-text-muted mb-3" />}
               title="No bookings yet."
@@ -238,7 +214,7 @@ export function BookingsList() {
             />
           )}
 
-          {bookings.length > 0 && filtered.length === 0 && (
+          {total === 0 && (crewFilter || dateFrom || dateTo || searchText) && (
             <EmptyState
               icon={<Search className="w-10 h-10 text-text-muted mb-3" />}
               title="No bookings match your filters."
@@ -247,7 +223,7 @@ export function BookingsList() {
           )}
 
           {/* ── Table ── */}
-          {filtered.length > 0 && (
+          {total > 0 && (
             <>
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-sm">
@@ -263,7 +239,7 @@ export function BookingsList() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {pageRows.map((slot) => (
+                    {bookings.map((slot) => (
                       <tr
                         key={slot.id}
                         className="hover:bg-surface-hover transition-colors cursor-pointer"
@@ -314,33 +290,13 @@ export function BookingsList() {
               </div>
 
               {/* ── Pagination ── */}
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-text-secondary">
-                  Showing {startIndex + 1}–{Math.min(startIndex + ROWS_PER_PAGE, filtered.length)} of{' '}
-                  {filtered.length}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-text-secondary">
-                    Rows per page: {ROWS_PER_PAGE}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={safePage <= 1}
-                      className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <ChevronLeft size={14} />
-                    </button>
-                    <button
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={safePage >= totalPages}
-                      className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={total}
+                pageSize={ROWS_PER_PAGE}
+                onPageChange={setPage}
+              />
             </>
           )}
         </>

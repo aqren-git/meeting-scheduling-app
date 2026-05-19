@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton/Skeleton'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { showSuccessToast, showErrorToast } from '@/components/ui/toast/toastConfig'
+import { isSlotInPast, isPastDate } from '@/lib/dateUtils'
 import {
   ChevronLeft,
   ChevronRight,
@@ -117,6 +118,11 @@ function SlotForm({ slot, defaultDate, onSuccess, onClose, crews, existingSlots 
       errs.endTime = 'End time must be after start time'
     }
 
+    /* Reject past dates/times */
+    if (!errs.date && !errs.startTime && isSlotInPast(date, startTime)) {
+      errs.date = 'Cannot create slots in the past'
+    }
+
     /* Check duplicates (only for add mode, available slots) */
     if (!isEdit && status === 'available' && !errs.crewId && !errs.date && !errs.startTime) {
       const dup = existingSlots?.find(
@@ -139,6 +145,12 @@ function SlotForm({ slot, defaultDate, onSuccess, onClose, crews, existingSlots 
   /* ── Submit ── */
   async function handleSubmit() {
     if (!validate()) return
+
+    if (isSlotInPast(date, startTime)) {
+      showErrorToast('Cannot save — this slot is in the past.')
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -341,6 +353,7 @@ function BulkCreateForm({ crews, onSuccess, onClose }: BulkCreateFormProps) {
   const [startTime, setStartTime] = useState('08:00')
   const [endTime, setEndTime] = useState('16:00')
   const [duration, setDuration] = useState(2)
+  const [gap, setGap] = useState(0)
   const [selectedCrews, setSelectedCrews] = useState<string[]>([])
   const [status, setStatus] = useState<'available' | 'blocked'>('available')
   const [weekdaysOnly, setWeekdaysOnly] = useState(true)
@@ -387,7 +400,7 @@ function BulkCreateForm({ crews, onSuccess, onClose }: BulkCreateFormProps) {
             status,
           })
         }
-        t = slotEnd
+        t = addHours(t, duration + gap)
       }
       current = addDays(current, 1)
     }
@@ -399,6 +412,7 @@ function BulkCreateForm({ crews, onSuccess, onClose }: BulkCreateFormProps) {
     startTime,
     endTime,
     duration,
+    gap,
     selectedCrews,
     status,
     weekdaysOnly,
@@ -417,7 +431,11 @@ function BulkCreateForm({ crews, onSuccess, onClose }: BulkCreateFormProps) {
     if (startTime && endTime && parseTimeStr(startTime) >= parseTimeStr(endTime)) {
       errs.endTime = 'End time must be after start time'
     }
-    if (duration < 1) errs.duration = 'Duration must be at least 1 hour'
+    if (startDate && isSlotInPast(startDate, startTime)) {
+      errs.startDate = 'Start date/time cannot be in the past'
+    }
+    if (duration < 0.5) errs.duration = 'Duration must be at least 30 minutes'
+    if (gap < 0) errs.gap = 'Gap cannot be negative'
     if (selectedCrews.length === 0) errs.crews = 'Select at least one crew'
     if (previewSlots.length === 0 && !Object.keys(errs).length) {
       errs.general = 'No slots would be created with the current settings'
@@ -429,6 +447,12 @@ function BulkCreateForm({ crews, onSuccess, onClose }: BulkCreateFormProps) {
   /* ── Submit ── */
   async function handleSubmit() {
     if (!validate()) return
+
+    if (isSlotInPast(startDate, startTime)) {
+      showErrorToast('Cannot create slots in the past.')
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -490,16 +514,26 @@ function BulkCreateForm({ crews, onSuccess, onClose }: BulkCreateFormProps) {
         />
       </div>
 
-      <Input
-        label="Slot Duration (hours)"
-        type="number"
-        min={1}
-        step={0.5}
-        value={String(duration)}
-        onChange={(e) => setDuration(Number(e.target.value))}
-        error={errors.duration}
-        required
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="Slot Duration (hours)"
+          type="number"
+          min={0.5}
+          step={0.5}
+          value={String(duration)}
+          onChange={(e) => setDuration(Number(e.target.value))}
+          error={errors.duration}
+          required
+        />
+        <Input
+          label="Gap Between Slots (hours)"
+          type="number"
+          min={0}
+          step={0.25}
+          value={String(gap)}
+          onChange={(e) => setGap(Number(e.target.value))}
+        />
+      </div>
 
       {/* Crew checkboxes */}
       <div className="mb-4">
@@ -570,8 +604,7 @@ function BulkCreateForm({ crews, onSuccess, onClose }: BulkCreateFormProps) {
             {format(parseISO(endDate), 'MMM d, yyyy')}
             {weekdaysOnly ? ' (weekdays only)' : ''} ·{' '}
             {formatTime(startTime)} – {formatTime(endTime)} ·{' '}
-            {duration}h slots · {selectedCrews.length} crew
-            {selectedCrews.length !== 1 ? 's' : ''}
+            {duration >= 1 ? `${duration}h` : `${duration * 60}min`} slots{gap > 0 ? ` · ${gap >= 1 ? `${gap}h` : `${gap * 60}min`} gap` : ''} · {selectedCrews.length} crew{selectedCrews.length !== 1 ? 's' : ''}
           </p>
         </div>
       )}
@@ -662,10 +695,12 @@ function SlotRow({
   slot,
   onEdit,
   onDelete,
+  disableActions,
 }: {
   slot: Slot
   onEdit: () => void
   onDelete: () => void
+  disableActions?: boolean
 }) {
   const crew = slot.crews
   const isBooked = slot.status === 'booked'
@@ -697,11 +732,14 @@ function SlotRow({
           </span>
 
           <Badge status={slot.status} />
+          {disableActions && (
+            <span className="text-[10px] text-text-muted italic">Past</span>
+          )}
         </div>
 
         {/* Right side: action buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
-          {!isBooked && (
+          {!isBooked && !disableActions && (
             <button
               onClick={onEdit}
               className="w-6 h-6 rounded-md flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
@@ -710,13 +748,15 @@ function SlotRow({
               <Edit3 size={13} />
             </button>
           )}
-          <button
-            onClick={onDelete}
-            className="w-6 h-6 rounded-md flex items-center justify-center text-text-muted hover:text-booked-text hover:bg-booked-bg transition-colors"
-            title="Delete slot"
-          >
-            <Trash2 size={13} />
-          </button>
+          {!disableActions && (
+            <button
+              onClick={onDelete}
+              className="w-6 h-6 rounded-md flex items-center justify-center text-text-muted hover:text-booked-text hover:bg-booked-bg transition-colors"
+              title="Delete slot"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -743,8 +783,13 @@ function SlotRow({
 /* ═══════════════════════════════════════════════════════════════
    Main SlotManager Component
    ═══════════════════════════════════════════════════════════════ */
+type SlotManagerView = 'day' | 'week'
+
 export function SlotManager() {
-  /* ── Week navigation ── */
+  const [view, setView] = useState<SlotManagerView>('day')
+
+  /* ── Date navigation ── */
+  const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 }),
   )
@@ -752,8 +797,9 @@ export function SlotManager() {
     () => endOfWeek(weekStart, { weekStartsOn: 1 }),
     [weekStart],
   )
-  const startStr = useMemo(() => format(weekStart, 'yyyy-MM-dd'), [weekStart])
-  const endStr = useMemo(() => format(weekEnd, 'yyyy-MM-dd'), [weekEnd])
+
+  const startStr = view === 'day' ? selectedDate : format(weekStart, 'yyyy-MM-dd')
+  const endStr = view === 'day' ? selectedDate : format(weekEnd, 'yyyy-MM-dd')
 
   /* ── Data ── */
   const { slots, loading, error, refresh } = useAdminSlots(startStr, endStr)
@@ -789,21 +835,36 @@ export function SlotManager() {
     [grouped],
   )
 
-  /* ── Week helpers ── */
-  const weekLabel = useMemo(() => {
+  /* ── Navigation helpers ── */
+  const label = useMemo(() => {
+    if (view === 'day') {
+      return format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy')
+    }
     return `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}`
-  }, [weekStart, weekEnd])
+  }, [view, selectedDate, weekStart, weekEnd])
 
   function goBack() {
-    setWeekStart((prev) => subWeeks(prev, 1))
+    if (view === 'day') {
+      setSelectedDate((prev) => format(addDays(parseISO(prev), -1), 'yyyy-MM-dd'))
+    } else {
+      setWeekStart((prev) => subWeeks(prev, 1))
+    }
   }
 
   function goForward() {
-    setWeekStart((prev) => addWeeks(prev, 1))
+    if (view === 'day') {
+      setSelectedDate((prev) => format(addDays(parseISO(prev), 1), 'yyyy-MM-dd'))
+    } else {
+      setWeekStart((prev) => addWeeks(prev, 1))
+    }
   }
 
   function goToToday() {
-    setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))
+    if (view === 'day') {
+      setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+    } else {
+      setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))
+    }
   }
 
   /* ── Delete handler ── */
@@ -819,25 +880,50 @@ export function SlotManager() {
     }
   }
 
-  /* ── Determines if the current week has any slots at all (pre-filtering) ── */
   const hasAnySlots = slots.length > 0
   const filteredCount = sortedDates.reduce((sum, d) => sum + grouped[d].length, 0)
   const hasFilteredSlots = filteredCount > 0
 
-  /* ── Today's date string for default in add modal ── */
-  const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), [])
+  const isPastDay = (dateStr: string) => isPastDate(parseISO(dateStr))
 
   /* ── Render ── */
   return (
     <div className="w-full">
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h1 className="text-lg font-bold text-text-primary">Slots Management</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-bold text-text-primary">Slots Management</h1>
+          {/* View toggle — in header so it's always visible on mobile */}
+          <div className="flex items-center rounded-md border border-border overflow-hidden">
+            <button
+              onClick={() => setView('day')}
+              className={`px-2.5 h-7 text-xs font-medium transition-colors ${
+                view === 'day'
+                  ? 'bg-brand text-white'
+                  : 'bg-surface-default text-text-secondary hover:bg-surface-hover'
+              }`}
+            >
+              Day
+            </button>
+            <button
+              onClick={() => setView('week')}
+              className={`px-2.5 h-7 text-xs font-medium transition-colors ${
+                view === 'week'
+                  ? 'bg-brand text-white'
+                  : 'bg-surface-default text-text-secondary hover:bg-surface-hover'
+              }`}
+            >
+              Week
+            </button>
+          </div>
+        </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => setAddModalOpen(true)}>
-            <Plus size={14} />
-            Add
-          </Button>
+          {view === 'day' && (
+            <Button variant="ghost" onClick={() => setAddModalOpen(true)}>
+              <Plus size={14} />
+              Add
+            </Button>
+          )}
           <Button variant="ghost" onClick={() => setBulkModalOpen(true)}>
             <Plus size={14} />
             Bulk
@@ -845,13 +931,13 @@ export function SlotManager() {
         </div>
       </div>
 
-      {/* ── Week navigator ── */}
+      {/* ── Navigation ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <button
             onClick={goBack}
             className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:bg-surface-hover transition-colors"
-            title="Previous week"
+            title={view === 'day' ? 'Previous day' : 'Previous week'}
           >
             <ChevronLeft size={16} />
           </button>
@@ -861,13 +947,13 @@ export function SlotManager() {
           >
             Today
           </button>
-          <span className="text-sm font-semibold text-text-primary min-w-[180px] text-center">
-            {weekLabel}
+          <span className="text-sm font-semibold text-text-primary text-center whitespace-nowrap">
+            {label}
           </span>
           <button
             onClick={goForward}
             className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:bg-surface-hover transition-colors"
-            title="Next week"
+            title={view === 'day' ? 'Next day' : 'Next week'}
           >
             <ChevronRight size={16} />
           </button>
@@ -903,7 +989,7 @@ export function SlotManager() {
       {/* ── Content ── */}
       {loading && (
         <div>
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: view === 'day' ? 1 : 5 }).map((_, i) => (
             <div key={i} className="mb-4">
               <Skeleton className="w-48 h-5 mb-2" />
               <div className="space-y-1">
@@ -943,8 +1029,8 @@ export function SlotManager() {
       {!loading && !error && !hasAnySlots && (
         <EmptyState
           icon={<CalendarX2 className="w-10 h-10 text-text-muted mb-3" />}
-          title="No slots for this week"
-          message="Add one or try a different week."
+          title={view === 'day' ? 'No slots for this day' : 'No slots for this week'}
+          message="Add one or try a different date."
         />
       )}
 
@@ -970,6 +1056,7 @@ export function SlotManager() {
                     slot={slot}
                     onEdit={() => setEditingSlot(slot)}
                     onDelete={() => setDeletingSlot(slot)}
+                    disableActions={view === 'week' && isPastDay(dateStr)}
                   />
                 ))}
               </div>
@@ -978,7 +1065,7 @@ export function SlotManager() {
         </div>
       )}
 
-      {/* ── Add Modal ── */}
+      {/* ── Add Modal (day view only) ── */}
       <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
@@ -987,7 +1074,7 @@ export function SlotManager() {
         {addModalOpen && (
           <SlotForm
             key="add"
-            defaultDate={todayStr}
+            defaultDate={selectedDate}
             onSuccess={() => {
               setAddModalOpen(false)
               refresh()

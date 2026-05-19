@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { isSlotInPast } from '@/lib/dateUtils'
 import { showSuccessToast, showErrorToast } from '@/components/ui/toast/toastConfig'
 
 interface BookingInput {
@@ -8,6 +9,8 @@ interface BookingInput {
   bookedByEmail: string
   propertyName: string
   notes?: string
+  date: string
+  startTime: string
 }
 
 export function useBooking() {
@@ -16,6 +19,11 @@ export function useBooking() {
   async function book(input: BookingInput) {
     setLoading(true)
     try {
+      if (isSlotInPast(input.date, input.startTime)) {
+        showErrorToast('This time slot has already passed and cannot be booked.')
+        return false
+      }
+
       const { data, error } = await supabase
         .from('slots')
         .update({
@@ -29,6 +37,7 @@ export function useBooking() {
         })
         .eq('id', input.slotId)
         .eq('status', 'available')
+        .gte('date', new Date().toISOString().split('T')[0])
         .select()
 
       if (error) throw error
