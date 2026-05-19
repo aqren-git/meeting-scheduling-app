@@ -24,8 +24,8 @@ export const STATUS_STYLES: Record<SlotStatus, { bg: string; text: string; label
     label: 'Unavailable',
   },
   cancelled: {
-    bg: 'bg-blocked-bg cursor-not-allowed',
-    text: 'text-blocked-text',
+    bg: 'bg-cancelled-bg cursor-not-allowed',
+    text: 'text-cancelled-text',
     label: 'Cancelled',
   },
 }

@@ -29,6 +29,7 @@ export function BookingsList() {
 
   // ── Detail Modal ──
   const [detailSlot, setDetailSlot] = useState<Slot | null>(null)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [cancelling, setCancelling] = useState(false)
 
   // ── Refresh counter (re-fetches after cancel) ──
@@ -50,8 +51,6 @@ export function BookingsList() {
   // ── Handlers ──
 
   const handleCancel = async (slotId: string) => {
-    if (!window.confirm('Cancel this booking? This will mark the slot as cancelled.')) return
-
     setCancelling(true)
     try {
       const { error: err } = await supabase
@@ -67,6 +66,7 @@ export function BookingsList() {
       if (err) throw err
 
       showSuccessToast('Booking cancelled.')
+      setShowCancelConfirm(false)
       setDetailSlot(null)
       setRefreshKey((k) => k + 1)
     } catch (e) {
@@ -235,6 +235,7 @@ export function BookingsList() {
                       <th className="text-left px-4 py-3 font-medium text-text-secondary whitespace-nowrap">Property</th>
                       <th className="text-left px-4 py-3 font-medium text-text-secondary whitespace-nowrap">Booked By</th>
                       <th className="text-left px-4 py-3 font-medium text-text-secondary whitespace-nowrap">Booked At</th>
+                      <th className="text-left px-4 py-3 font-medium text-text-secondary whitespace-nowrap">Status</th>
                       <th className="text-right px-4 py-3 font-medium text-text-secondary whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
@@ -242,8 +243,12 @@ export function BookingsList() {
                     {bookings.map((slot) => (
                       <tr
                         key={slot.id}
-                        className="hover:bg-surface-hover transition-colors cursor-pointer"
-                        onClick={() => setDetailSlot(slot)}
+                        className={
+                          slot.status === 'cancelled'
+                            ? 'bg-red-50 hover:bg-red-100 transition-colors cursor-pointer'
+                            : 'hover:bg-surface-hover transition-colors cursor-pointer'
+                        }
+                        onClick={() => { setShowCancelConfirm(false); setDetailSlot(slot) }}
                       >
                         <td className="px-4 py-3 text-text-primary whitespace-nowrap">
                           {formatDate(slot.date)}
@@ -274,11 +279,14 @@ export function BookingsList() {
                         <td className="px-4 py-3 text-text-secondary whitespace-nowrap text-xs">
                           {slot.booked_at ? formatDateTime(slot.booked_at) : '—'}
                         </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <Badge status={slot.status} />
+                        </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
                           <Button
                             variant="ghost"
                             className="!w-auto !h-7 !px-2 !text-xs"
-                            onClick={(e) => { e.stopPropagation(); setDetailSlot(slot) }}
+                            onClick={(e) => { e.stopPropagation(); setShowCancelConfirm(false); setDetailSlot(slot) }}
                           >
                             View
                           </Button>
@@ -305,7 +313,7 @@ export function BookingsList() {
       {/* ── Detail Modal ── */}
       <Modal
         isOpen={detailSlot !== null}
-        onClose={() => { if (!cancelling) setDetailSlot(null) }}
+        onClose={() => { if (!cancelling) { setShowCancelConfirm(false); setDetailSlot(null) } }}
         title="Booking Details"
       >
         {detailSlot && (
@@ -389,15 +397,36 @@ export function BookingsList() {
             </div>
 
             {/* Cancel Button */}
-            <div className="border-t border-border pt-3">
-              <Button
-                onClick={() => handleCancel(detailSlot.id)}
-                loading={cancelling}
-                className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
-              >
-                Cancel Booking
-              </Button>
-            </div>
+            {detailSlot.status !== 'cancelled' && (
+              <div className="border-t border-border pt-3">
+                {!showCancelConfirm ? (
+                  <Button
+                    onClick={() => setShowCancelConfirm(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
+                  >
+                    Cancel Booking
+                  </Button>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      onClick={() => handleCancel(detailSlot.id)}
+                      loading={cancelling}
+                      className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowCancelConfirm(false)}
+                      disabled={cancelling}
+                      className="w-full sm:w-auto"
+                    >
+                      Keep Booking
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Modal>

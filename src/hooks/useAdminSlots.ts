@@ -83,7 +83,7 @@ export function useAllBookings({ page, pageSize, crewFilter, dateFrom, dateTo, s
       try {
         let query = supabase.from('slots').select('*, crews(name, color, display_order)', { count: 'exact' })
 
-        query = query.eq('status', 'booked')
+        query = query.in('status', ['booked', 'cancelled'])
 
         if (crewFilter) {
           query = query.eq('crew_id', crewFilter)
