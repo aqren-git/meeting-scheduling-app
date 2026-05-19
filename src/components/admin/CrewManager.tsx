@@ -331,7 +331,7 @@ export function CrewManager() {
                 <th className="px-3 py-2.5 font-medium">Color</th>
                 <th className="px-3 py-2.5 font-medium">Name</th>
                 <th className="px-3 py-2.5 font-medium">Display Order</th>
-                <th className="px-3 py-2.5 font-medium">Max Jobs/Day</th>
+                <th className="px-3 py-2.5 font-medium">Max Slots</th>
                 <th className="px-3 py-2.5 font-medium">Active</th>
                 <th className="px-3 py-2.5 font-medium w-20">Actions</th>
               </tr>
@@ -439,7 +439,7 @@ export function CrewManager() {
         />
 
         <Input
-          label="Max Jobs Per Day"
+          label="Max Slots"
           type="number"
           min={1}
           value={form.max_jobs_per_day}

@@ -19,6 +19,7 @@ export interface Slot {
     name: string
     color: string
     display_order: number
+    max_jobs_per_day: number
   }
 }
 
@@ -28,4 +29,5 @@ export interface Crew {
   color: string
   display_order: number
   is_active: boolean
+  max_jobs_per_day: number
 }

@@ -1,9 +1,9 @@
 import type { Slot, Crew } from '@/types/slot'
 
 export const MOCK_CREWS: Crew[] = [
-  { id: 'crew-1', name: 'Team Alpha', color: '#16a34a', display_order: 1, is_active: true },
-  { id: 'crew-2', name: 'Team Beta', color: '#2563eb', display_order: 2, is_active: true },
-  { id: 'crew-3', name: 'Team Gamma', color: '#d97706', display_order: 3, is_active: true },
+  { id: 'crew-1', name: 'Team Alpha', color: '#16a34a', display_order: 1, is_active: true, max_jobs_per_day: 5 },
+  { id: 'crew-2', name: 'Team Beta', color: '#2563eb', display_order: 2, is_active: true, max_jobs_per_day: 5 },
+  { id: 'crew-3', name: 'Team Gamma', color: '#d97706', display_order: 3, is_active: true, max_jobs_per_day: 5 },
 ]
 
 const SLOT_TIMES = [

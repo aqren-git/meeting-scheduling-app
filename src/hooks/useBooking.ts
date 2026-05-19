@@ -24,6 +24,36 @@ export function useBooking() {
         return false
       }
 
+      /* Check crew daily booking limit */
+      const { data: crewIdResult } = await supabase
+        .from('slots')
+        .select('crew_id')
+        .eq('id', input.slotId)
+        .single()
+
+      if (crewIdResult) {
+        const { data: crewData } = await supabase
+          .from('crews')
+          .select('max_jobs_per_day')
+          .eq('id', crewIdResult.crew_id)
+          .single()
+
+        const maxSlots = crewData?.max_jobs_per_day ?? 0
+        if (maxSlots > 0) {
+          const { count: bookedCount } = await supabase
+            .from('slots')
+            .select('id', { count: 'exact', head: true })
+            .eq('crew_id', crewIdResult.crew_id)
+            .eq('date', input.date)
+            .eq('status', 'booked')
+
+          if (bookedCount !== null && bookedCount >= maxSlots) {
+            showErrorToast(`This crew has reached its daily booking limit (${maxSlots}). No more bookings available for this date.`)
+            return false
+          }
+        }
+      }
+
       const { data, error } = await supabase
         .from('slots')
         .update({

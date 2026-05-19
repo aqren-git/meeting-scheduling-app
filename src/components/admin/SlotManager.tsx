@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAdminSlots } from '@/hooks/useAdminSlots'
 import { useCrews } from '@/hooks/useCrews'
@@ -90,7 +90,7 @@ interface SlotFormProps {
   /** Close the modal */
   onClose: () => void
   /** All crews for the dropdown */
-  crews: { id: string; name: string; color: string }[]
+  crews: { id: string; name: string; color: string; max_jobs_per_day: number }[]
   /** Existing slots to check for duplicates (add mode only) */
   existingSlots?: Slot[]
 }
@@ -123,6 +123,19 @@ function SlotForm({ slot, defaultDate, onSuccess, onClose, crews, existingSlots 
       errs.date = 'Cannot create slots in the past'
     }
 
+    /* Check max slots per day */
+    if (!errs.crewId && !errs.date) {
+      const crew = crews.find((c) => c.id === crewId)
+      if (crew && crew.max_jobs_per_day > 0) {
+        const existingCount = existingSlots?.filter(
+          (s) => s.crew_id === crewId && s.date === date && (isEdit && slot ? s.id !== slot.id : true),
+        ).length ?? 0
+        if (existingCount >= crew.max_jobs_per_day) {
+          errs.date = `"${crew.name}" daily slot limit reached (${crew.max_jobs_per_day}). No more slots can be added for this date.`
+        }
+      }
+    }
+
     /* Check duplicates (only for add mode, available slots) */
     if (!isEdit && status === 'available' && !errs.crewId && !errs.date && !errs.startTime) {
       const dup = existingSlots?.find(
@@ -149,6 +162,23 @@ function SlotForm({ slot, defaultDate, onSuccess, onClose, crews, existingSlots 
     if (isSlotInPast(date, startTime)) {
       showErrorToast('Cannot save — this slot is in the past.')
       return
+    }
+
+    /* Server-side max slots check */
+    const crew = crews.find((c) => c.id === crewId)
+    if (crew && crew.max_jobs_per_day > 0) {
+      const { count } = await supabase
+        .from('slots')
+        .select('id', { count: 'exact', head: true })
+        .eq('crew_id', crewId)
+        .eq('date', date)
+        .neq('id', slot?.id ?? '')
+
+      if (count !== null && count >= crew.max_jobs_per_day) {
+        showErrorToast(`"${crew.name}" daily slot limit reached (${crew.max_jobs_per_day}). No more slots can be added for this date.`)
+        setSaving(false)
+        return
+      }
     }
 
     setSaving(true)
@@ -342,7 +372,7 @@ function SlotForm({ slot, defaultDate, onSuccess, onClose, crews, existingSlots 
    Bulk Create Modal
    ═══════════════════════════════════════════════════════════════ */
 interface BulkCreateFormProps {
-  crews: { id: string; name: string; color: string }[]
+  crews: { id: string; name: string; color: string; max_jobs_per_day: number }[]
   onSuccess: () => void
   onClose: () => void
 }
@@ -359,6 +389,32 @@ function BulkCreateForm({ crews, onSuccess, onClose }: BulkCreateFormProps) {
   const [weekdaysOnly, setWeekdaysOnly] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [existingCounts, setExistingCounts] = useState<Map<string, number>>(new Map())
+
+  /* ── Fetch existing slot counts for the date range ── */
+  useEffect(() => {
+    if (!startDate || !endDate || selectedCrews.length === 0) {
+      setExistingCounts(new Map())
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('slots')
+      .select('crew_id, date', { count: 'exact' })
+      .in('crew_id', selectedCrews)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .then(({ data, error }) => {
+        if (cancelled || error || !data) return
+        const counts = new Map<string, number>()
+        for (const row of data) {
+          const key = `${row.crew_id}|${row.date}`
+          counts.set(key, (counts.get(key) ?? 0) + 1)
+        }
+        if (!cancelled) setExistingCounts(counts)
+      })
+    return () => { cancelled = true }
+  }, [startDate, endDate, selectedCrews])
 
   /* ── Toggle crew selection ── */
   function toggleCrew(id: string) {
@@ -437,6 +493,33 @@ function BulkCreateForm({ crews, onSuccess, onClose }: BulkCreateFormProps) {
     if (duration < 0.5) errs.duration = 'Duration must be at least 30 minutes'
     if (gap < 0) errs.gap = 'Gap cannot be negative'
     if (selectedCrews.length === 0) errs.crews = 'Select at least one crew'
+
+    /* Check max slots per crew per date */
+    if (!Object.keys(errs).length && previewSlots.length > 0) {
+      const violations: string[] = []
+      const newCounts = new Map<string, number>()
+      for (const slot of previewSlots) {
+        const key = `${slot.crew_id}|${slot.date}`
+        newCounts.set(key, (newCounts.get(key) ?? 0) + 1)
+      }
+      for (const [key, newCount] of newCounts) {
+        const [crewId] = key.split('|')
+        const crew = crews.find((c) => c.id === crewId)
+        if (!crew || crew.max_jobs_per_day <= 0) continue
+        const existing = existingCounts.get(key) ?? 0
+        const total = existing + newCount
+        if (total > crew.max_jobs_per_day) {
+          violations.push(
+            `"${crew.name}" exceeds ${crew.max_jobs_per_day} slot limit on ${key.split('|')[1]} (would have ${total})`,
+          )
+        }
+      }
+      if (violations.length > 0) {
+        errs.general = violations.slice(0, 3).join('. ')
+        if (violations.length > 3) errs.general += ` (and ${violations.length - 3} more)`
+      }
+    }
+
     if (previewSlots.length === 0 && !Object.keys(errs).length) {
       errs.general = 'No slots would be created with the current settings'
     }
