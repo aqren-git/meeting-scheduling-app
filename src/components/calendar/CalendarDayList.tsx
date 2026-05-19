@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { format, isSameDay } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalendarMonth } from '@/hooks/useCalendarMonth'
@@ -13,7 +13,7 @@ interface CalendarDayListProps {
 export function CalendarDayList({ slots }: CalendarDayListProps) {
   const { currentYear, currentMonth } = useCalendarStore()
   const calendarDays = useCalendarMonth(currentYear, currentMonth)
-  const today = useRef(new Date())
+  const today = useMemo(() => new Date(), [])
   const [expandedDay, setExpandedDay] = useState<string | null>(null)
 
   const slotsByDate = useMemo(() => {
@@ -28,7 +28,7 @@ export function CalendarDayList({ slots }: CalendarDayListProps) {
 
   const dayEntries = useMemo(() => {
     return calendarDays
-      .filter((d) => !d.isPadding)
+      .filter((d) => !d.isPadding && !d.isPast)
       .map((d) => {
         const daySlots = (d.dateStr ? slotsByDate.get(d.dateStr) ?? [] : [])
           .sort((a, b) => a.start_time.localeCompare(b.start_time))
@@ -43,7 +43,7 @@ export function CalendarDayList({ slots }: CalendarDayListProps) {
       {dayEntries.map((day) => {
         if (!day.date) return null
         const dow = day.date.getDay()
-        const isToday = isSameDay(day.date, today.current)
+        const isToday = isSameDay(day.date, today)
         const hasSlots = day.daySlots.length > 0
         const isExpanded = expandedDay === day.dateStr
 
