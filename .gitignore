@@ -24,5 +24,4 @@ dist-ssr
 *.sw?
 nul
 .env
-generate-token.js
 .antigravitycli
