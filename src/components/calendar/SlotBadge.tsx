@@ -13,7 +13,7 @@ export function SlotBadge({ slot }: SlotBadgeProps) {
   const isBooked = slot.status === 'booked'
   const isPast = isAvailable && isSlotInPast(slot.date, slot.start_time)
 
-  const baseClass = 'flex flex-col gap-0.5 px-1 py-0.5 rounded-[4px] border transition-all duration-150 mb-0.5 select-none w-full sm:px-1.5 sm:py-1 sm:rounded-md'
+  const baseClass = 'flex flex-col gap-0.5 px-1 py-0.5 rounded-none border transition-all duration-150 mb-0.5 select-none w-full sm:px-1.5 sm:py-1 sm:rounded-none'
   const stateClass = isPast
     ? 'bg-blocked-bg border-blocked-border text-blocked-text cursor-not-allowed'
     : isAvailable

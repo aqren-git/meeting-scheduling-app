@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { getCalendarDays, isPastDate } from '@/lib/dateUtils'
+import { isPastDate } from '@/lib/dateUtils'
+import { startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths } from 'date-fns'
 
 interface CalendarDay {
   date: Date | null
@@ -12,8 +13,17 @@ interface CalendarDay {
 
 export function useCalendarMonth(year: number, month: number) {
   return useMemo(() => {
-    const { days, paddingDays } = getCalendarDays(year, month)
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth()
+
+    const startOfSelected = startOfMonth(new Date(year, month))
+    const endOfSelected = isCurrentMonth
+      ? endOfMonth(addMonths(startOfSelected, 1))
+      : endOfMonth(startOfSelected)
+
+    const days = eachDayOfInterval({ start: startOfSelected, end: endOfSelected })
+    const paddingDays = getDay(startOfSelected)
 
     const paddingCells: CalendarDay[] = Array.from({ length: paddingDays }, () => ({
       date: null,

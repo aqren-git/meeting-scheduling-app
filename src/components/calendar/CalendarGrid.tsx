@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalendarMonth } from '@/hooks/useCalendarMonth'
 import { DayCell } from './DayCell'
@@ -13,6 +13,7 @@ interface CalendarGridProps {
 export function CalendarGrid({ slots }: CalendarGridProps) {
   const { currentYear, currentMonth } = useCalendarStore()
   const calendarDays = useCalendarMonth(currentYear, currentMonth)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const slotsByDate = useMemo(() => {
     const map = new Map<string, Slot[]>()
@@ -24,25 +25,44 @@ export function CalendarGrid({ slots }: CalendarGridProps) {
     return map
   }, [slots])
 
+  // Scroll today's row into focus on mount / date change
+  useEffect(() => {
+    if (containerRef.current) {
+      const todayElement = containerRef.current.querySelector('#today-cell') as HTMLElement
+      if (todayElement) {
+        const container = containerRef.current
+        const todayRect = todayElement.getBoundingClientRect()
+        const containerRect = container.getBoundingClientRect()
+        const relativeTop = todayRect.top - containerRect.top + container.scrollTop
+        const headerOffset = 38 // Height of the sticky week day header
+        container.scrollTop = Math.max(0, relativeTop - headerOffset)
+      }
+    }
+  }, [calendarDays])
+
   return (
     /* On mobile (<640px), the grid is horizontally scrollable with 130px-wide columns
        so each cell has room for the day number and slot times.
-       On tablet+, the grid fills available width naturally. */
-    <div className="overflow-x-auto">
+       On tablet+, the grid fills available width naturally.
+       Added max-h-[600px] and overflow-y-auto to allow vertical scrolling of the grid. */
+    <div 
+      ref={containerRef}
+      className="overflow-x-auto max-h-[600px] overflow-y-auto relative scroll-smooth"
+    >
       <div className="min-w-[910px] sm:min-w-0">
-        {/* Spec 6.3: Day-of-week header — text-xs, font-medium, text-secondary, tracking-wide, uppercase */}
-        <div className="grid grid-cols-7 border-b border-border bg-surface/50">
+        {/* Day-of-week header — sticky top-0, text-xs, font-medium, text-secondary, tracking-wide, uppercase */}
+        <div className="grid grid-cols-7 border-b border-border bg-surface/95 sticky top-0 z-20 backdrop-blur-xs">
           {DAYS_OF_WEEK.map((day) => (
             <div
               key={day}
-              className="py-2 text-xs font-medium text-text-secondary tracking-wide uppercase text-center"
+              className="py-2 text-xs font-semibold text-text-secondary tracking-wide uppercase text-center"
             >
               {day}
             </div>
           ))}
         </div>
 
-        {/* Spec 6.4: Grid with gap-px, bg-border for grid lines */}
+        {/* Grid with gap-px, bg-border for grid lines */}
         <div className="grid grid-cols-7 gap-px bg-border">
           {calendarDays.map((day, idx) => {
             const isWeekend = day.date ? [0, 6].includes(day.date.getDay()) : false
@@ -56,6 +76,7 @@ export function CalendarGrid({ slots }: CalendarGridProps) {
                 isToday={day.isToday}
                 isWeekend={isWeekend}
                 slots={daySlots}
+                colIndex={idx % 7}
               />
             )
           })}

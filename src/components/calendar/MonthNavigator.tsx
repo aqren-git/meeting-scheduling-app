@@ -27,17 +27,17 @@ export function MonthNavigator() {
         <button
           onClick={goToPrevMonth}
           disabled={isCurrentMonth}
-          className="w-8 h-8 rounded-md flex items-center justify-center text-text-secondary hover:bg-surface-hover disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          className="w-8 h-8 rounded-none flex items-center justify-center text-text-secondary hover:bg-surface-hover disabled:opacity-30 disabled:pointer-events-none transition-colors border border-border bg-white"
           aria-label="Previous month"
         >
           <ChevronLeft size={18} />
         </button>
-        <h3 className="text-base font-semibold text-text-primary min-w-[180px] text-center select-none">
+        <h3 className="text-sm font-black uppercase tracking-wider text-text-primary min-w-[180px] text-center select-none">
           {MONTHS[currentMonth]} {currentYear}
         </h3>
         <button
           onClick={goToNextMonth}
-          className="w-8 h-8 rounded-md flex items-center justify-center text-text-secondary hover:bg-surface-hover transition-colors"
+          className="w-8 h-8 rounded-none flex items-center justify-center text-text-secondary hover:bg-surface-hover transition-colors border border-border bg-white"
           aria-label="Next month"
         >
           <ChevronRight size={18} />
@@ -49,12 +49,12 @@ export function MonthNavigator() {
         {!isCurrentMonth && (
           <button
             onClick={goToToday}
-            className="text-sm text-brand underline hover:no-underline transition-colors"
+            className="text-xs font-black uppercase tracking-wider text-brand hover:text-brand-hover hover:underline transition-colors"
           >
             Today
           </button>
         )}
-        <div className="flex items-center bg-surface rounded-md p-0.5 border border-border">
+        <div className="flex items-center bg-surface rounded-none p-0.5 border border-border">
           {views.map((v) => {
             const Icon = v.icon
             const active = view === v.key
@@ -62,9 +62,9 @@ export function MonthNavigator() {
               <button
                 key={v.key}
                 onClick={() => setView(v.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-[10px] font-black uppercase tracking-wider transition-all ${
                   active
-                    ? 'bg-white text-text-primary shadow-sm'
+                    ? 'bg-white text-text-primary border border-border/80 shadow-sm'
                     : 'text-text-secondary hover:text-text-primary'
                 }`}
               >

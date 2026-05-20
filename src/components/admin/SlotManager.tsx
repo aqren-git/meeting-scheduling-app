@@ -814,7 +814,13 @@ function SlotRow({
             {crew?.name ?? 'Unknown'}
           </span>
 
-          <Badge status={slot.status} />
+          <Badge
+            status={
+              slot.status === 'available' && isSlotInPast(slot.date, slot.start_time)
+                ? 'expired'
+                : slot.status
+            }
+          />
           {disableActions && (
             <span className="text-[10px] text-text-muted italic">Past</span>
           )}

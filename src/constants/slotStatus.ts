@@ -5,7 +5,7 @@ export const SLOT_STATUS = {
   CANCELLED: 'cancelled' as const,
 } as const
 
-export type SlotStatus = (typeof SLOT_STATUS)[keyof typeof SLOT_STATUS]
+export type SlotStatus = (typeof SLOT_STATUS)[keyof typeof SLOT_STATUS] | 'expired'
 
 export const STATUS_STYLES: Record<SlotStatus, { bg: string; text: string; label: string }> = {
   available: {
@@ -27,5 +27,10 @@ export const STATUS_STYLES: Record<SlotStatus, { bg: string; text: string; label
     bg: 'bg-cancelled-bg cursor-not-allowed',
     text: 'text-cancelled-text',
     label: 'Cancelled',
+  },
+  expired: {
+    bg: 'bg-blocked-bg cursor-not-allowed',
+    text: 'text-blocked-text',
+    label: 'Expired',
   },
 }

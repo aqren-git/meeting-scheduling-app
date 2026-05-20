@@ -80,6 +80,8 @@ export function useBooking() {
       showSuccessToast('Booking confirmed!')
 
       const { crews } = data[0]
+      
+      // Asynchronously send Slack/Email notifications
       supabase.functions.invoke('notify-booking', {
         body: {
           date: data[0].date,
@@ -91,6 +93,20 @@ export function useBooking() {
         },
       }).catch(() => {
         // Fire-and-forget — notification failure should not block UI
+      })
+
+      // Asynchronously trigger Google Calendar Event & Meet link creation
+      supabase.functions.invoke('create-calendar-event', {
+        body: {
+          slotId: data[0].id,
+          customerEmail: input.bookedByEmail,
+          startTime: `${data[0].date}T${data[0].start_time}`,
+          endTime: `${data[0].date}T${data[0].end_time}`,
+          title: `Reliance Service Walkthrough: ${input.propertyName}`,
+          description: `Service assessment booked by ${input.bookedByName}.\nNotes: ${input.notes ?? 'None'}`
+        }
+      }).catch((err) => {
+        console.error('Google Calendar sync invocation failed:', err)
       })
 
       return true

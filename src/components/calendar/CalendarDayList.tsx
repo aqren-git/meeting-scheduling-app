@@ -60,15 +60,15 @@ export function CalendarDayList({ slots }: CalendarDayListProps) {
               }`}
             >
               {/* Date badge */}
-              <div className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center flex-shrink-0 ${
+              <div className={`w-10 h-10 rounded-none flex flex-col items-center justify-center flex-shrink-0 ${
                 isToday ? 'bg-brand text-white' : 'bg-surface border border-border'
               }`}>
-                <span className={`text-[10px] font-semibold leading-tight ${
-                  isToday ? 'text-white/80' : 'text-text-muted'
+                <span className={`text-[10px] font-black leading-tight ${
+                  isToday ? 'text-white/85' : 'text-text-muted'
                 }`}>
-                  {weekdays[dow].slice(0, 3)}
+                  {weekdays[dow].slice(0, 3).toUpperCase()}
                 </span>
-                <span className={`text-sm font-bold leading-tight ${
+                <span className={`text-sm font-black leading-tight ${
                   isToday ? 'text-white' : 'text-text-primary'
                 }`}>
                   {day.dayNumber}
@@ -77,9 +77,9 @@ export function CalendarDayList({ slots }: CalendarDayListProps) {
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${isToday ? 'text-brand' : 'text-text-primary'}`}>
+                <p className={`text-sm font-bold ${isToday ? 'text-brand' : 'text-text-primary'}`}>
                   {format(day.date, 'MMMM d, yyyy')}
-                  {isToday && <span className="ml-2 text-xs font-semibold bg-brand/10 text-brand px-1.5 py-0.5 rounded">Today</span>}
+                  {isToday && <span className="ml-2.5 text-[9px] font-black uppercase tracking-wider bg-[#e59400]/15 text-[#e59400] px-2 py-0.5 rounded-none border border-[#e59400]/20">Today</span>}
                 </p>
                 <p className="text-xs text-text-muted mt-0.5">
                   {hasSlots

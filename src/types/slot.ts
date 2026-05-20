@@ -13,6 +13,8 @@ export interface Slot {
   booked_by_email: string | null
   notes: string | null
   booked_at: string | null
+  google_event_id?: string | null
+  google_meet_link?: string | null
   created_at: string
   updated_at: string
   crews?: {

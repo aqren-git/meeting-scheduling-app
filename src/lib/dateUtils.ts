@@ -1,6 +1,6 @@
 import {
   startOfMonth, endOfMonth, eachDayOfInterval,
-  getDay, format, isBefore, startOfDay,
+  getDay, format, isBefore, startOfDay, addMonths
 } from 'date-fns'
 
 export function getCalendarDays(year: number, month: number) {
@@ -12,8 +12,15 @@ export function getCalendarDays(year: number, month: number) {
 }
 
 export function getMonthRange(year: number, month: number) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth()
+
   const start = startOfMonth(new Date(year, month))
-  const end = endOfMonth(new Date(year, month))
+  const end = isCurrentMonth
+    ? endOfMonth(addMonths(start, 1))
+    : endOfMonth(start)
+
   return {
     start: format(start, 'yyyy-MM-dd'),
     end: format(end, 'yyyy-MM-dd'),

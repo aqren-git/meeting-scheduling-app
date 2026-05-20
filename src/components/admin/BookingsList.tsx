@@ -396,6 +396,22 @@ export function BookingsList() {
               </p>
             </div>
 
+            {/* Google Meet Link */}
+            {detailSlot.google_meet_link && (
+              <div>
+                <p className="text-xs text-text-muted mb-0.5">Google Meet</p>
+                <a
+                  href={detailSlot.google_meet_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white bg-[#0060c0] hover:bg-[#004b87] transition-colors rounded-none"
+                >
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />
+                  Join Google Meet
+                </a>
+              </div>
+            )}
+
             {/* Cancel Button */}
             {detailSlot.status !== 'cancelled' && (
               <div className="border-t border-border pt-3">
