@@ -17,7 +17,7 @@ import process from 'process';
 // Replace these values with yours!
 const CLIENT_ID =
   "";
-const CLIENT_SECRET = '';
+const CLIENT_SECRET = "";
 
 // Using your active Vite port for a seamless redirection!
 const REDIRECT_URI = 'http://localhost:5173'; 

@@ -68,7 +68,7 @@ export function useBooking() {
         .eq('id', input.slotId)
         .eq('status', 'available')
         .gte('date', new Date().toISOString().split('T')[0])
-        .select()
+        .select('*, crews(name, color, display_order, max_jobs_per_day)')
 
       if (error) throw error
 
@@ -80,23 +80,10 @@ export function useBooking() {
       showSuccessToast('Booking confirmed!')
 
       const { crews } = data[0]
-      
-      // Asynchronously send Slack/Email notifications
-      supabase.functions.invoke('notify-booking', {
-        body: {
-          date: data[0].date,
-          crewName: crews?.name ?? 'Unknown',
-          propertyName: input.propertyName,
-          bookedByName: input.bookedByName,
-          bookedByEmail: input.bookedByEmail,
-          notes: input.notes ?? null,
-        },
-      }).catch(() => {
-        // Fire-and-forget — notification failure should not block UI
-      })
+      const crewName = crews?.name ?? 'Unknown'
 
-      // Asynchronously trigger Google Calendar Event & Meet link creation
-      supabase.functions.invoke('create-calendar-event', {
+      // Create Google Calendar event first, then send notifications with the meet link
+      const calendarPromise = supabase.functions.invoke('create-calendar-event', {
         body: {
           slotId: data[0].id,
           customerEmail: input.bookedByEmail,
@@ -105,8 +92,23 @@ export function useBooking() {
           title: `Reliance Service Walkthrough: ${input.propertyName}`,
           description: `Service assessment booked by ${input.bookedByName}.\nNotes: ${input.notes ?? 'None'}`
         }
-      }).catch((err) => {
-        console.error('Google Calendar sync invocation failed:', err)
+      }).then(res => res.data as { meetLink?: string } | null).catch(() => null)
+
+      // Notify with or without meet link
+      const { meetLink } = await calendarPromise ?? {}
+
+      supabase.functions.invoke('notify-booking', {
+        body: {
+          date: data[0].date,
+          crewName,
+          propertyName: input.propertyName,
+          bookedByName: input.bookedByName,
+          bookedByEmail: input.bookedByEmail,
+          notes: input.notes ?? null,
+          meetLink: meetLink ?? null,
+        },
+      }).catch(() => {
+        // Fire-and-forget — notification failure should not block UI
       })
 
       return true
