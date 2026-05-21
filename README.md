@@ -31,13 +31,15 @@
 reliance-scheduler/
 ├── supabase/
 │   ├── migrations/
-│   │   ├── 001_initial_schema.sql    # Core tables: crews, slots, properties, settings, audit_log
-│   │   ├── 002_triggers.sql           # updated_at, audit log, booked_at triggers
-│   │   └── 003_time_slots.sql         # [Optional] Migration from nullable to required time fields
+│   │   ├── 001_initial_schema.sql        # Core tables: crews, slots, properties, settings, audit_log
+│   │   ├── 002_triggers.sql              # updated_at, audit log, booked_at triggers
+│   │   └── 003_google_calendar_fields.sql # Adds google_event_id & google_meet_link to slots
 │   ├── functions/
+│   │   ├── create-calendar-event/
+│   │   │   └── index.ts                  # Edge Function — creates Google Calendar event + Meet link
 │   │   └── notify-booking/
-│   │       └── index.ts               # Edge Function — sends booking confirmation email via Resend
-│   └── seed.sql                       # Demo data: 3 crews + time slots for 5 weeks
+│   │       └── index.ts                  # Edge Function — sends email notification + customer confirmation
+│   └── seed.sql                          # Demo data: 3 crews + time slots for 5 weeks
 │
 ├── src/
 │   ├── components/
@@ -105,6 +107,9 @@ reliance-scheduler/
 │   ├── main.tsx                       # React entry point
 │   └── index.css                      # Tailwind v4 @theme tokens + CSS variables + body styles
 │
+├── agents/
+│   └── GC-SYNC.md                     # Google Calendar sync architecture documentation
+├── generate-token.js                  # One-time script to generate Google OAuth refresh token
 ├── .env.example                       # Environment variable template
 ├── .env.local                         # Local Supabase credentials (gitignored)
 ├── vite.config.ts                     # Vite config + @/ path alias
@@ -161,7 +166,7 @@ Open your Supabase project's **SQL Editor** and run these files in order:
    - `log_slot_change()` audit trigger on slots
    - `set_booked_at()` auto-timestamp on status changes
 
-> **Note:** `003_time_slots.sql` is only needed if you ran an older version of `001` with nullable `start_time`/`end_time`. The current `001` already includes the final time-slot schema.
+> **Note:** If you want Google Calendar integration, also run **`supabase/migrations/003_google_calendar_fields.sql`** after the initial setup (see the [Google Calendar section](#google-calendar--google-meet-integration) for full instructions).
 
 ### 4. Seed Demo Data
 
@@ -212,53 +217,241 @@ The booking query includes `.eq('status', 'available')` — the update only succ
 
 ---
 
-## Booking Notification Email
+## Google Calendar & Google Meet Integration
 
-After a successful booking, the app calls a Supabase Edge Function that sends a confirmation email via Resend.
+When someone books a slot, the system automatically:
+- Creates a Google Calendar event on **your** business calendar
+- Generates a **Google Meet** video link
+- Sends a calendar invite to the customer (if they use Gmail)
+- Sends a confirmation email to both you and the customer with the Meet link
 
-### Deploy the Edge Function
+> **Important:** This is a **single-owner calendar** setup. Only one Google account (the business owner's) is connected. Customers do NOT log in with Google or connect their own calendars.
 
-1. **Install Supabase CLI**
+### Architecture
 
-```bash
-npm install -g supabase
-supabase login
+```txt
+Customer books a slot
+        ↓
+React frontend calls Edge Function
+        ↓
+create-calendar-event Edge Function runs
+        ↓
+Refreshes Google access token using stored refresh_token
+        ↓
+Creates Calendar event + Google Meet link
+        ↓
+Saves event ID & Meet link to the slots table
+        ↓
+notify-booking Edge Function sends emails
+        ↓
+Admin gets notification email (with Meet link)
+        ↓
+Customer gets confirmation email (with "Open Meet Link" button)
 ```
 
-2. **Link to your project**
+---
 
-```bash
-supabase link --project-ref your-project-ref
+### Step 1: Create a Google Cloud Project
+
+1. Go to **[Google Cloud Console](https://console.cloud.google.com)** — sign in with the Google account that owns the business calendar (the one where you want events to appear)
+2. Click the project dropdown at the top of the page (next to the "Google Cloud" logo)
+3. Click **New Project**
+4. Give it a name like `Reliance-Scheduling` (or anything you'll recognize)
+5. Click **Create**
+6. Wait for the project to be created, then make sure it is selected in the project dropdown
+
+---
+
+### Step 2: Enable the Google Calendar API
+
+1. In your Google Cloud project, go to **APIs & Services → Library** (use the left sidebar menu)
+2. Search for **"Google Calendar API"**
+3. Click on **Google Calendar API**
+4. Click **Enable**
+
+---
+
+### Step 3: Configure the OAuth Consent Screen
+
+Before you can create credentials, you need to set up the OAuth consent screen:
+
+1. Go to **APIs & Services → OAuth consent screen** (left sidebar)
+2. Select **External** user type and click **Create**
+3. Fill in the required fields:
+   - **App name**: `Reliance Scheduling`
+   - **User support email**: your email address
+   - **Developer contact information**: your email address
+4. Click **Save and Continue**
+5. On the **Scopes** page, click **Add or Remove Scopes**, search for `../auth/calendar`, select the **.../auth/calendar** scope, click **Add**, then **Update**, then **Save and Continue**
+6. On the **Test users** page, click **Save and Continue** (you don't need to add test users — you'll use your own account)
+7. Review and click **Back to Dashboard**
+
+> If you see **"Publishing status: Testing"** — that is fine. Since only you (the calendar owner) will authorize this app, testing mode is sufficient.
+
+---
+
+### Step 4: Create OAuth 2.0 Credentials
+
+1. Go to **APIs & Services → Credentials**
+2. Click **Create Credentials** (top bar) → **OAuth 2.0 Client ID**
+3. For **Application type**, select **Desktop app**
+4. For **Name**, enter `Calendar Sync Token Generator`
+5. Click **Create**
+6. A popup appears with your **Client ID** and **Client Secret**
+7. **Copy both values** — you'll need them in the next step
+8. Click **OK**
+
+> ⚠️ Keep your Client Secret private. Never commit it to Git or share it publicly.
+
+---
+
+### Step 5: Generate a Refresh Token
+
+> This is a **one-time** setup step. You only do this once — the refresh token is permanent unless you manually revoke it.
+
+The project includes a script at `generate-token.js` that walks you through the OAuth flow:
+
+1. **Open `generate-token.js`** in your editor and replace the placeholder values at the top of the file:
+
+```js
+const CLIENT_ID = "paste-your-client-id-here";
+const CLIENT_SECRET = "paste-your-client-secret-here";
 ```
 
-3. **Set environment secrets**
+2. **Run the script** from your terminal:
 
 ```bash
-supabase secrets set supabase_url=https://your-project.supabase.co
-supabase secrets set supabase_anon_key=eyJ...
-supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxx
+node generate-token.js
 ```
 
-Get the Resend API key from [resend.com](https://resend.com) (free tier: 3,000 emails/month).
+3. **Open the URL** that is printed in the terminal — it will open in your browser
+4. **Sign in** with the Google account that owns your business calendar
+5. **Click "Continue"** on the consent screen (it may warn that the app isn't verified — click "Advanced" → "Go to Reliance Scheduling (unsafe)" since this is your own app)
+6. **You'll be redirected** to `http://localhost:5173/?code=XXXX...` (the page will show an error — that's expected)
+7. **Copy the entire `code=XXXX...`** value from the browser's address bar (just the code parameter, not the whole URL)
+8. **Paste it** into the terminal prompt and press Enter
+9. The script will display your credentials:
 
-4. **Deploy**
+```
+SUCCESS! Generated Google OAuth Credentials:
+
+GOOGLE_CLIENT_ID:      734445718565-xxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET:  GOCSPX-xxxx
+GOOGLE_REFRESH_TOKEN:  1//0goxxxx
+
+supabase secrets set GOOGLE_CLIENT_ID="..." GOOGLE_CLIENT_SECRET="..." GOOGLE_REFRESH_TOKEN="..."
+```
+
+10. **Keep this terminal open** — you'll use these values in Step 7
+
+---
+
+### Step 6: Add Google Calendar Columns to the Database
+
+1. Open your Supabase project's **SQL Editor**
+2. Run the contents of **`supabase/migrations/003_google_calendar_fields.sql`**:
+
+```sql
+ALTER TABLE slots 
+ADD COLUMN IF NOT EXISTS google_event_id text,
+ADD COLUMN IF NOT EXISTS google_meet_link text;
+```
+
+3. Verify the columns were added in **Supabase Dashboard → Table Editor → `slots`** — you should see `google_event_id` and `google_meet_link` columns
+
+---
+
+### Step 7: Set Supabase Secrets
+
+Now configure the Edge Functions with the Google credentials:
 
 ```bash
+supabase secrets set GOOGLE_CLIENT_ID="paste-your-client-id" GOOGLE_CLIENT_SECRET="paste-your-client-secret" GOOGLE_REFRESH_TOKEN="paste-your-refresh-token"
+```
+
+If you still have the terminal from Step 5 open, you can copy-paste the full command that was printed.
+
+Also set the Supabase connection secrets (if not already set):
+
+```bash
+supabase secrets set SUPABASE_URL="https://rnkqsnbildlpfzftfwpy.supabase.co"
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+```
+
+> Find your `SERVICE_ROLE_KEY` in **Supabase Dashboard → Project Settings → API** — it's under the `service_role` section. Keep this key private — it has full admin access to your database.
+
+---
+
+### Step 8: Deploy the Edge Functions
+
+Deploy both Edge Functions to Supabase:
+
+```bash
+supabase functions deploy create-calendar-event
 supabase functions deploy notify-booking
 ```
 
-The function reads the recipient email from the `settings` table at runtime. To change where notifications go, either:
+Verify they deployed successfully:
 
-**Via Admin Panel:**
-1. Access admin panel at `/admin`
-2. Go to **Settings** tab
-3. Update **Notification Email** field
-4. Click **Save Settings**
-
-**Via SQL:**
-```sql
-update settings set value = 'new-email@example.com' where key = 'notification_email';
+```bash
+supabase functions list
 ```
+
+You should see both functions in the list with status "ACTIVE".
+
+---
+
+### What Happens When a Booking is Made
+
+1. Customer fills in the booking form and clicks **Confirm Booking**
+2. The slot is saved in the database with status `booked`
+3. The frontend calls `create-calendar-event` Edge Function:
+   - It uses the stored refresh token to get a short-lived access token
+   - Creates a Google Calendar event on your primary calendar
+   - Generates a Google Meet link
+   - Saves the event ID and Meet link to the `slots` table
+4. The frontend then calls `notify-booking` Edge Function:
+   - Sends an **admin notification** email with booking details + Meet link
+   - Sends a **customer confirmation** email with a prominent "Open Meet Link" button
+
+---
+
+### How to Verify It Works
+
+1. Run the app with `npm run dev`
+2. Book a test slot through the public calendar
+3. Check your **Google Calendar** — a new event should appear
+4. Check your **email inbox** — you should receive a notification email with the Meet link
+5. Check the **customer's email inbox** — they should receive a confirmation with the "Open Meet Link" button
+6. In **Supabase Dashboard → Table Editor → `slots`**, the booked slot should have `google_event_id` and `google_meet_link` populated
+
+---
+
+### Troubleshooting
+
+| Problem | Likely Cause | Fix |
+|---|---|---|
+| `invalid_grant` error | Refresh token was revoked | Generate a new refresh token (repeat Step 5) |
+| No Meet link in response | `conferenceDataVersion=1` missing | Check `create-calendar-event/index.ts` has `?conferenceDataVersion=1` in the URL |
+| Calendar event not created | Google secrets not set correctly | Run `supabase secrets list` to verify `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` are set |
+| "failed to refresh Google credentials" | Expired access / wrong credentials | Re-run Step 5 to generate a fresh refresh token |
+| Customer not receiving email | `meetLink` is null (Calendar event failed first) | Check the Edge Function logs in Supabase Dashboard |
+| `missing required fields` error | Payload doesn't include all fields | Ensure `slotId`, `customerEmail`, `startTime`, `endTime`, `title` are all present |
+
+### Regenerating the Refresh Token
+
+If you ever need to regenerate the refresh token (e.g., you change Google accounts or the token is revoked):
+
+1. Go to **[Google Account Permissions](https://myaccount.google.com/permissions)** and remove access for your app
+2. Open `generate-token.js`, make sure your CLIENT_ID and CLIENT_SECRET are still current
+3. Run `node generate-token.js` again and follow the same steps
+4. Update the Supabase secret with the new refresh token:
+
+```bash
+supabase secrets set GOOGLE_REFRESH_TOKEN="new-refresh-token"
+```
+
+> Under normal operation, you never need to do this. The refresh token works indefinitely.
 
 ---
 
