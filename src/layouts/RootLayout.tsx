@@ -5,7 +5,7 @@ import { Phone, Mail, Settings, MapPin } from 'lucide-react'
 export default function RootLayout() {
   const currentYear = new Date().getFullYear()
   const location = useLocation()
-  const isServicesPage = location.pathname === ROUTES.SERVICES
+  const isServicesPage = location.pathname === ROUTES.SERVICES || location.pathname === ROUTES.EMERGENCY
 
   return (
     <div className="min-h-screen bg-surface flex flex-col font-sans">
@@ -128,7 +128,7 @@ export default function RootLayout() {
               <span className="text-[#e59400]/80">Lic# 1063345 Dosh #1228</span>
             </div>
             <div className="flex items-center gap-4">
-              <a href="#privacy" className="hover:text-white transition-colors">Privacy Policy</a>
+              <a href="https://reliance.services/privacy-policy/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Privacy Policy</a>
               <span>&middot;</span>
               <a href="#terms" className="hover:text-white transition-colors">Terms of Service</a>
             </div>
