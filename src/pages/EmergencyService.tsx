@@ -4,9 +4,9 @@ import {
   AlertTriangle,
   Phone,
   ArrowRight,
-  ShieldCheck,
   Clock,
   Award,
+  Zap,
   MapPin,
   Mail,
 } from 'lucide-react'
@@ -45,9 +45,9 @@ const STEPS = [
 ]
 
 const TRUST = [
-  { icon: ShieldCheck, text: 'Licensed & Insured' },
-  { icon: Clock,        text: '24/7 Emergency Response' },
-  { icon: Award,        text: 'Prevailing Wage Certified' },
+  { icon: Zap,   text: 'Same-Day On-Site' },
+  { icon: Clock, text: 'Residents Back Faster' },
+  { icon: Award, text: 'Prevailing Wage Certified' },
 ]
 
 function formatLocal(value: string, code: string): string {
@@ -215,7 +215,11 @@ export default function EmergencyService() {
             </div>
 
             <div className="border-t border-white/8 pt-6">
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/40 mb-4">Why choose Reliance</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/40 mb-3">Built on One Principle</p>
+              <p className="text-sm text-white/60 leading-relaxed mb-4">
+                Our goal is to get the resident back into the unit as quickly as possible.{' '}
+                <span className="text-white/85 font-semibold">Everything we do is based on this one principle.</span>
+              </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 {TRUST.map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-center gap-2.5 bg-[#1e1e1e] border border-white/8 rounded-xl px-4 py-3 flex-1">
